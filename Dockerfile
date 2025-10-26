@@ -30,7 +30,7 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev --no-script
 
 # Install Node.js (used by Vite) and build front-end assets if package.json is present
 RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs npm \
+    && apt-get install -y nodejs \
     && if [ -f package.json ]; then \
         npm ci --silent || npm install --silent; \
         npm run build --silent || true; \
