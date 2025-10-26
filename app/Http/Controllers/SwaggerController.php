@@ -47,6 +47,23 @@ use Illuminate\Http\Request;
  *         )
  *     )
  * )
+ *
+ * @OA\PathItem(
+ *     path="/api/welcome",
+ *     @OA\Get(
+ *         summary="Get welcome message",
+ *         description="Returns a welcome message and logs the request",
+ *         operationId="getWelcome",
+ *         tags={"General"},
+ *         @OA\Response(
+ *             response=200,
+ *             description="Successful operation",
+ *             @OA\JsonContent(
+ *                 @OA\Property(property="message", type="string", example="Welcome to the Laravel API Service!")
+ *             )
+ *         )
+ *     )
+ * )
  */
 class SwaggerController extends Controller
 {

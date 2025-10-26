@@ -46,8 +46,12 @@ RUN echo '<VirtualHost *:80>\n\
     CustomLog ${APACHE_LOG_DIR}/access.log combined\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
 
+# Copier le script de démarrage
+COPY start.sh /usr/local/bin/start.sh
+RUN chmod +x /usr/local/bin/start.sh
+
 # Exposer le port 80
 EXPOSE 80
 
 # Commande par défaut selon l'environnement
-CMD if [ "$APP_ENV" = "production" ]; then ./start.sh; else apache2-foreground; fi
+CMD if [ "$APP_ENV" = "production" ]; then /usr/local/bin/start.sh; else apache2-foreground; fi
