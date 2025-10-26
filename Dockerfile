@@ -6,13 +6,12 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     unzip \
     git \
-    default-mysql-client \
-    && docker-php-ext-install pdo pdo_pgsql pdo_mysql zip
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Autoriser Composer à s'exécuter en tant que root (utile dans les containers de dev)
+# Autoriser Composer à s'exécuter en tant que root
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Copier les fichiers du projet
@@ -21,13 +20,14 @@ COPY . /var/www/html
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Installer les dépendances PHP
-RUN composer install --no-interaction --optimize-autoloader
+# Installer les dépendances PHP (production)
+RUN composer install --no-interaction --optimize-autoloader --no-dev
 
 # Donner les permissions appropriées
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+    && chmod -R 755 /var/www/html/bootstrap/cache \
+    && chmod +x start.sh
 
 # Activer le module rewrite d'Apache
 RUN a2enmod rewrite
@@ -47,4 +47,4 @@ RUN echo '<VirtualHost *:80>\n\
 EXPOSE 80
 
 # Commande par défaut
-CMD ["apache2-foreground"]
+CMD ["./start.sh"]

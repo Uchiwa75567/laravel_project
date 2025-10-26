@@ -7,6 +7,75 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+
+## Docker & Environnement de développement
+
+### 1. Lancement du projet avec Docker
+
+Le projet utilise Docker Compose pour isoler l’environnement de développement :
+
+- **PHP 8.3 (Apache)**
+- **PostgreSQL 16**
+- **pgAdmin** (interface web pour PostgreSQL)
+
+#### Commandes principales
+
+```bash
+# Démarrer les conteneurs
+docker-compose up -d
+
+# Re-construire l’image après modification du Dockerfile
+docker-compose build --no-cache
+
+# Accéder à un conteneur (exemple : app)
+docker-compose exec app bash
+```
+
+### 2. Configuration de la base de données
+
+La base PostgreSQL est accessible depuis le conteneur Laravel via :
+
+- **Host** : `db`
+- **Port** : `5432` (interne Docker)
+- **Database** : `laravel_db`
+- **User** : `laravel_user`
+- **Password** : `laravel_pass`
+
+Ces valeurs sont définies dans `.env` et `docker-compose.yml`.
+
+### 3. Installation de Laravel Passport (authentification API)
+
+```bash
+# Installation du package Passport
+docker-compose exec app composer require laravel/passport
+
+# Exécution des migrations et installation Passport
+docker-compose exec app php artisan migrate
+docker-compose exec app php artisan passport:install
+```
+Lors de l’installation, répondre `yes` aux questions pour exécuter les migrations et créer les clients OAuth.
+
+### 4. Installation de Laravel Debugbar (outil de debug)
+
+```bash
+docker-compose exec app composer require barryvdh/laravel-debugbar --dev
+```
+La Debugbar s’affiche automatiquement en environnement local sur les pages web.
+
+### 5. Problèmes courants
+
+- **Erreur de version PHP** :
+	- Modifier le `Dockerfile` pour utiliser `php:8.3-apache` si besoin.
+- **Erreur de connexion à la base** :
+	- Toujours exécuter les commandes artisan/migrate depuis le conteneur Docker (`docker-compose exec app ...`).
+- **Message "dubious ownership" avec git** :
+	- Exécuter :
+	  ```bash
+	  docker-compose exec app git config --global --add safe.directory /var/www/html
+	  ```
+
+---
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

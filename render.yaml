@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: laravel-app
+    runtime: docker
+    buildCommand: "docker build -t laravel-app ."
+    startCommand: "docker run -p $PORT:80 laravel-app"
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_KEY
+        generateValue: true
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromSecret: db_host
+      - key: DB_PORT
+        fromSecret: db_port
+      - key: DB_DATABASE
+        fromSecret: db_name
+      - key: DB_USERNAME
+        fromSecret: db_username
+      - key: DB_PASSWORD
+        fromSecret: db_password
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: CACHE_DRIVER
+        value: array
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: SESSION_DRIVER
+        value: file
