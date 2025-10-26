@@ -11,9 +11,103 @@ use Illuminate\Http\JsonResponse;
 class AuthController extends Controller
 {
     /**
+     * @OA\Post(
+     *     path="/login",
+     *     tags={"Authentification"},
+     *     summary="Connexion utilisateur",
+     *     description="Authentifie un utilisateur et retourne un token d'accès",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 required={"login","password"},
+     *                 @OA\Property(property="login", type="string", description="Login de l'utilisateur"),
+     *                 @OA\Property(property="password", type="string", format="password", description="Mot de passe")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Connexion réussie",
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(property="success", type="boolean", example=true),
+     *                 @OA\Property(property="message", type="string", example="Connexion réussie"),
+     *                 @OA\Property(property="data", type="object",
+     *                     @OA\Property(property="user", type="object",
+     *                         @OA\Property(property="id", type="string"),
+     *                         @OA\Property(property="login", type="string"),
+     *                         @OA\Property(property="type", type="string", enum={"admin","client"})
+     *                     ),
+     *                     @OA\Property(property="token", type="string", description="Token d'accès Bearer")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Identifiants invalides",
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(property="success", type="boolean", example=false),
+     *                 @OA\Property(property="message", type="string", example="Identifiants invalides")
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    /**
      * Login using password grant and return access + refresh tokens
      */
     public function login(Request $request): JsonResponse
+    /**
+     * @OA\Post(
+     *     path="/register",
+     *     tags={"Authentification"},
+     *     summary="Inscription d'un nouveau client",
+     *     description="Crée un nouveau compte client",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 required={"login","password","nom","nci","email","telephone","adresse"},
+     *                 @OA\Property(property="login", type="string"),
+     *                 @OA\Property(property="password", type="string", format="password"),
+     *                 @OA\Property(property="nom", type="string"),
+     *                 @OA\Property(property="nci", type="string"),
+     *                 @OA\Property(property="email", type="string", format="email"),
+     *                 @OA\Property(property="telephone", type="string"),
+     *                 @OA\Property(property="adresse", type="string")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Inscription réussie",
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(property="success", type="boolean", example=true),
+     *                 @OA\Property(property="message", type="string", example="Inscription réussie"),
+     *                 @OA\Property(property="data", type="object",
+     *                     @OA\Property(property="user", type="object"),
+     *                     @OA\Property(property="token", type="string")
+     *                 )
+     *             )
+     *         )
+     *     )
+     * )
+     */
+    // Note: the real registration logic may live elsewhere (CompteController). This annotation exposes /register in the docs.
     {
         $params = $request->validate([
             'email' => 'required|email',
@@ -54,6 +148,27 @@ class AuthController extends Controller
      * Refresh access token using refresh_token
      */
     public function refresh(Request $request): JsonResponse
+    /**
+     * @OA\Post(
+     *     path="/logout",
+     *     tags={"Authentification"},
+     *     summary="Déconnexion",
+     *     description="Révoque le token d'accès actuel",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Déconnexion réussie",
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(property="success", type="boolean", example=true),
+     *                 @OA\Property(property="message", type="string", example="Déconnexion réussie")
+     *             )
+     *         )
+     *     )
+     * )
+     */
     {
         $params = $request->validate([
             'refresh_token' => 'required|string',
