@@ -7,6 +7,14 @@ services:
       - "8081:80"
     env_file:
       - .env
+    environment:
+      - APP_ENV=local
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=laravel_db
+      - DB_USERNAME=laravel_user
+      - DB_PASSWORD=laravel_pass
     volumes:
       - .:/var/www/html
     depends_on:
@@ -23,7 +31,7 @@ services:
       POSTGRES_PASSWORD: laravel_pass
       POSTGRES_DB: laravel_db
     ports:
-      - "5434:5432"  # port local différent pour éviter conflit avec ton PostgreSQL host
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:

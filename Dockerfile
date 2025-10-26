@@ -6,13 +6,12 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     unzip \
     git \
-    default-mysql-client \
-    && docker-php-ext-install pdo pdo_pgsql pdo_mysql zip
+    && docker-php-ext-install pdo pdo_pgsql zip
 
 # Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Autoriser Composer à s'exécuter en tant que root (utile dans les containers de dev)
+# Autoriser Composer à s'exécuter en tant que root
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Copier les fichiers du projet
@@ -21,8 +20,12 @@ COPY . /var/www/html
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Installer les dépendances PHP
-RUN composer install --no-interaction --optimize-autoloader
+# Installer les dépendances PHP selon l'environnement
+RUN if [ "$APP_ENV" = "production" ]; then \
+        composer install --no-interaction --optimize-autoloader --no-dev; \
+    else \
+        composer install --no-interaction --optimize-autoloader; \
+    fi
 
 # Donner les permissions appropriées
 RUN chown -R www-data:www-data /var/www/html \
@@ -46,5 +49,5 @@ RUN echo '<VirtualHost *:80>\n\
 # Exposer le port 80
 EXPOSE 80
 
-# Commande par défaut
-CMD ["apache2-foreground"]
+# Commande par défaut selon l'environnement
+CMD if [ "$APP_ENV" = "production" ]; then ./start.sh; else apache2-foreground; fi
