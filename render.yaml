@@ -29,3 +29,5 @@ services:
         value: sync
       - key: SESSION_DRIVER
         value: file
+      - key: APP_DEBUG
+        value: false

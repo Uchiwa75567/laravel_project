@@ -20,14 +20,17 @@ COPY . /var/www/html
 # Définir le répertoire de travail
 WORKDIR /var/www/html
 
-# Installer les dépendances PHP (production)
-RUN composer install --no-interaction --optimize-autoloader --no-dev
+# Installer les dépendances PHP selon l'environnement
+RUN if [ "$APP_ENV" = "production" ]; then \
+        composer install --no-interaction --optimize-autoloader --no-dev; \
+    else \
+        composer install --no-interaction --optimize-autoloader; \
+    fi
 
 # Donner les permissions appropriées
 RUN chown -R www-data:www-data /var/www/html \
     && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache \
-    && chmod +x start.sh
+    && chmod -R 755 /var/www/html/bootstrap/cache
 
 # Activer le module rewrite d'Apache
 RUN a2enmod rewrite
@@ -46,5 +49,5 @@ RUN echo '<VirtualHost *:80>\n\
 # Exposer le port 80
 EXPOSE 80
 
-# Commande par défaut
-CMD ["./start.sh"]
+# Commande par défaut selon l'environnement
+CMD if [ "$APP_ENV" = "production" ]; then ./start.sh; else apache2-foreground; fi
