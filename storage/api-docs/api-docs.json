@@ -55,6 +55,34 @@
                     }
                 ]
             }
+        },
+        "/api/welcome": {
+            "get": {
+                "tags": [
+                    "General"
+                ],
+                "summary": "Get welcome message",
+                "description": "Returns a welcome message and logs the request",
+                "operationId": "getWelcome",
+                "responses": {
+                    "200": {
+                        "description": "Successful operation",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Welcome to the Laravel API Service!"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "components": {
@@ -71,6 +99,10 @@
         {
             "name": "Authentication",
             "description": "Authentication"
+        },
+        {
+            "name": "General",
+            "description": "General"
         }
     ]
 }
