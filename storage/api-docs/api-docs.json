@@ -394,6 +394,66 @@
                 }
             }
         },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Refresh token",
+                "description": "\u00c9change un refresh_token contre un nouvel access_token",
+                "operationId": "05bd0482845348cafa4da9e4fb7d0ffb",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "refresh_token"
+                                ],
+                                "properties": {
+                                    "refresh_token": {
+                                        "description": "Refresh token",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nouveaux tokens retourn\u00e9s"
+                    },
+                    "401": {
+                        "description": "Refresh token invalide ou expir\u00e9"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Logout",
+                "description": "R\u00e9voque l'access token et ses refresh tokens associ\u00e9s",
+                "operationId": "8f1a443d39c3bf383f851fbb51253c64",
+                "responses": {
+                    "200": {
+                        "description": "D\u00e9connect\u00e9"
+                    },
+                    "400": {
+                        "description": "Token introuvable ou invalide"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/comptes/{compteId}": {
             "get": {
                 "tags": [
