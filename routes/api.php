@@ -31,6 +31,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/comptes/{compte}', [CompteController::class, 'show']);
     Route::post('/v1/comptes', [CompteController::class, 'store']);
     Route::patch('/v1/comptes/{compte}', [CompteController::class, 'update']);
+    Route::middleware('auth:api')->delete('/api/v1/comptes/{compteId}', [App\Http\Controllers\CompteController::class, 'delete']);
     // RESTful resources for v1
     Route::apiResource('/v1/clients', ClientController::class);
     Route::apiResource('/v1/transactions', TransactionController::class);
@@ -44,4 +45,5 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/refresh', [\App\Http\Controllers\AuthController::class, 'refresh'])->middleware(['throttle:ip-minute']);
     Route::post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->middleware(['auth:api','throttle:user-hour','throttle:ip-minute']);
     Route::get('/auth/authentification', [\App\Http\Controllers\AuthController::class, 'authentification'])->middleware(['auth:api','throttle:user-hour']);
+    Route::middleware('auth:api')->delete('/v1/auth/delete/{id}', [App\Http\Controllers\AuthController::class, 'deleteAccount']);
 });

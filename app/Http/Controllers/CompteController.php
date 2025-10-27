@@ -536,4 +536,38 @@ class CompteController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Compte mis à jour avec succès', 'data' => $data], 201);
     }
+
+    /**
+     * @OA\Delete(
+     *     path="/api/v1/comptes/{compteId}",
+     *     tags={"Comptes"},
+     *     summary="Supprimer un compte par son id",
+     *     description="Supprime le compte spécifié. Seul le propriétaire ou un administrateur peut supprimer le compte.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="compteId",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte à supprimer",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(response=200, description="Compte supprimé avec succès"),
+     *     @OA\Response(response=403, description="Action non autorisée"),
+     *     @OA\Response(response=404, description="Compte non trouvé")
+     * )
+     */
+    public function delete(Request $request, string $compteId): JsonResponse
+    {
+        $user = Auth::user();
+        $compte = \App\Models\Compte::find($compteId);
+        if (!$compte) {
+            return response()->json(['success' => false, 'message' => 'Compte non trouvé'], 404);
+        }
+        // Vérifie si l'utilisateur est admin ou propriétaire du compte
+        if ($user->role !== 'admin' && $compte->client_id !== $user->id) {
+            return response()->json(['success' => false, 'message' => 'Action non autorisée'], 403);
+        }
+        $compte->delete();
+        return response()->json(['success' => true, 'message' => 'Compte supprimé avec succès']);
+    }
 }

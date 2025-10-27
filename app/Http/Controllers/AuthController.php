@@ -262,4 +262,44 @@ class AuthController extends Controller
 
         return response()->json(['success' => true, 'data' => ['user' => $user]]);
     }
+
+    /**
+     * @OA\Delete(
+     *     path="/v1/auth/delete/{id}",
+     *     tags={"Authentification"},
+     *     summary="Supprimer un compte utilisateur par son id",
+     *     description="Supprime le compte de l'utilisateur spécifié. Seul l'utilisateur lui-même ou un administrateur peut supprimer le compte.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         description="ID de l'utilisateur à supprimer",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(response=200, description="Compte supprimé avec succès"),
+     *     @OA\Response(response=403, description="Action non autorisée"),
+     *     @OA\Response(response=404, description="Utilisateur non trouvé")
+     * )
+     */
+    public function deleteAccount(Request $request, $id): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Not authenticated'], 401);
+        }
+
+        // Only allow self-deletion or admin
+        if ($user->id != $id && $user->role !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Action non autorisée'], 403);
+        }
+
+        $userToDelete = \App\Models\User::find($id);
+        if (!$userToDelete) {
+            return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
+        }
+
+        $userToDelete->delete();
+        return response()->json(['success' => true, 'message' => 'Compte supprimé avec succès']);
+    }
 }
