@@ -70,91 +70,11 @@ class AuthController extends Controller
         }
 
         $body = $tokenResponse->json();
-
         return response()->json([
             'access_token' => $body['access_token'] ?? null,
             'refresh_token' => $body['refresh_token'] ?? null,
             'expires_in' => $body['expires_in'] ?? null,
             'token_type' => $body['token_type'] ?? 'Bearer',
         ]);
-    }
-
-    /**
-     * @OA\Post(
-     *     path="/api/v1/auth/refresh",
-     *     tags={"Authentification"},
-     *     summary="Renouvelle l'access token",
-     *     description="Renouvelle l'access token via le refresh token (OAuth2, JWT RS256)",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 required={"refresh_token"},
-     *                 @OA\Property(property="refresh_token", type="string")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=200, description="Token renouvelé")
-     * )
-     */
-    public function refresh(Request $request): JsonResponse
-    {
-        $params = $request->validate([
-            'refresh_token' => 'required|string',
-        ]);
-
-        $client = DB::table('oauth_clients')->where('password_client', true)->first();
-        if (!$client) {
-            return response()->json(['error' => 'OAuth password client non configuré'], 500);
-        }
-
-        $tokenResponse = HttpClient::asForm()->post(url('/oauth/token'), [
-            'grant_type' => 'refresh_token',
-            'refresh_token' => $params['refresh_token'],
-            'client_id' => $client->id,
-            'client_secret' => $client->secret,
-            'scope' => '',
-        ]);
-
-        if ($tokenResponse->failed()) {
-            return response()->json(['error' => 'Refresh token invalide'], 401);
-        }
-
-        $body = $tokenResponse->json();
-
-        return response()->json([
-            'access_token' => $body['access_token'] ?? null,
-            'refresh_token' => $body['refresh_token'] ?? null,
-            'expires_in' => $body['expires_in'] ?? null,
-            'token_type' => $body['token_type'] ?? 'Bearer',
-        ]);
-    }
-
-    /**
-     * @OA\Post(
-     *     path="/api/v1/auth/logout",
-     *     tags={"Authentification"},
-     *     summary="Déconnexion",
-     *     description="Invalide les tokens d'accès et de refresh (OAuth2, JWT RS256)",
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response=200, description="Déconnexion réussie")
-     * )
-     */
-    public function logout(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['error' => 'Non authentifié'], 401);
-        }
-
-        $token = $user->token();
-        if ($token) {
-            DB::table('oauth_refresh_tokens')->where('access_token_id', $token->id)->update(['revoked' => true]);
-            $token->revoke();
-        }
-
-        return response()->json(['message' => 'Déconnexion réussie']);
     }
 }

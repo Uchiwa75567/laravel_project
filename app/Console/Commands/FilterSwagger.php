@@ -27,8 +27,9 @@ class FilterSwagger extends Command
     {
         $keep = $this->option('tags') ?: ['Authentification', 'Comptes'];
 
-        $docsDir = config('l5-swagger.defaults.paths.docs', storage_path('api-docs'));
-        $docsFile = $docsDir . '/' . (config('l5-swagger.documentations.default.paths.docs_json') ?? 'api-docs.json');
+    // Correction du chemin pour l'environnement local
+    $docsDir = base_path('storage/api-docs');
+    $docsFile = $docsDir . '/' . (config('l5-swagger.documentations.default.paths.docs_json') ?? 'api-docs.json');
 
         if (!file_exists($docsFile)) {
             $this->error("Swagger docs file not found: $docsFile");

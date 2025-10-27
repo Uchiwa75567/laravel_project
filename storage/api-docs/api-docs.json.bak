@@ -466,59 +466,6 @@
                 }
             }
         },
-        "/api/v1/auth/refresh": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Renouvelle l'access token",
-                "description": "Renouvelle l'access token via le refresh token (OAuth2, JWT RS256)",
-                "operationId": "05bd0482845348cafa4da9e4fb7d0ffb",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "refresh_token"
-                                ],
-                                "properties": {
-                                    "refresh_token": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Token renouvelé"
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/logout": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Déconnexion",
-                "description": "Invalide les tokens d'accès et de refresh (OAuth2, JWT RS256)",
-                "operationId": "8f1a443d39c3bf383f851fbb51253c64",
-                "responses": {
-                    "200": {
-                        "description": "Déconnexion réussie"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/api/v1/clients": {
             "get": {
                 "tags": [
@@ -793,6 +740,65 @@
                     },
                     "404": {
                         "description": "Compte non trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Modifier les informations d'un compte",
+                "description": "Tous les champs sont optionnels, mais au moins un doit être modifié. Téléphone unique et valide, email unique, mot de passe sécurisé.",
+                "operationId": "53945335c65ff02b87b04b21ad40d816",
+                "parameters": [
+                    {
+                        "name": "compteId",
+                        "in": "path",
+                        "description": "ID du compte à modifier",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "properties": {
+                                    "titulaire": {
+                                        "type": "string"
+                                    },
+                                    "informationsClient": {
+                                        "properties": {
+                                            "telephone": {
+                                                "type": "string"
+                                            },
+                                            "email": {
+                                                "type": "string"
+                                            },
+                                            "password": {
+                                                "type": "string",
+                                                "format": "password"
+                                            }
+                                        },
+                                        "type": "object"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "201": {
+                        "description": "Compte mis à jour avec succès"
                     }
                 },
                 "security": [
