@@ -12,19 +12,22 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-            \App\Models\User::create([
-                'name' => 'Admin User',
-                'email' => 'admin@bankapi.com',
-                'password' => bcrypt('Password!23'),
-                'is_active' => true
-            ]);
-        
-            \App\Models\User::create([
-                'name' => 'Test Bot',
-                'email' => 'test+bot@bankapi.com',
-                'password' => bcrypt('Password123'),
-                'is_active' => true
-            ]);
+        // Only create users if they don't exist
+        \App\Models\User::firstOrCreate([
+            'email' => 'admin@bankapi.com'
+        ], [
+            'name' => 'Admin User',
+            'password' => bcrypt('Password!23'),
+            'is_active' => true
+        ]);
+
+        \App\Models\User::firstOrCreate([
+            'email' => 'test+bot@bankapi.com'
+        ], [
+            'name' => 'Test Bot',
+            'password' => bcrypt('Password123'),
+            'is_active' => true
+        ]);
 
         // \App\Models\User::factory()->create([
         //     'name' => 'Test User',
