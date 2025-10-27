@@ -41,6 +41,9 @@ php artisan view:cache
 echo "Generating Swagger documentation..."
 php artisan l5-swagger:generate
 
+# Filtrer la documentation pour ne garder que les tags Authentification et Comptes
+php artisan swagger:filter --tags=Authentification --tags=Comptes
+
 # Start Apache
 echo "Starting Apache server..."
 apache2-foreground
