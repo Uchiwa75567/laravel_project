@@ -26,12 +26,14 @@
                                 "properties": {
                                     "email": {
                                         "description": "Email de l'utilisateur",
-                                        "type": "string"
+                                        "type": "string",
+                                        "example": "admin@bankapi.com"
                                     },
                                     "password": {
                                         "description": "Mot de passe",
                                         "type": "string",
-                                        "format": "password"
+                                        "format": "password",
+                                        "example": "password"
                                     }
                                 },
                                 "type": "object"
