@@ -6,6 +6,10 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     unzip \
     git \
+    curl \
+    gnupg \
+    ca-certificates \
+    build-essential \
     && docker-php-ext-install pdo pdo_pgsql zip
 
 # Installer Composer
@@ -21,14 +25,23 @@ COPY . /var/www/html
 WORKDIR /var/www/html
 
 # Installer les dépendances PHP selon l'environnement
-RUN if [ "$APP_ENV" = "production" ]; then \
-        composer install --no-interaction --optimize-autoloader --no-dev; \
-    else \
-        composer install --no-interaction --optimize-autoloader; \
+# Install Composer dependencies (production build - no dev deps)
+RUN composer install --no-interaction --optimize-autoloader --no-dev --no-scripts || true
+
+# Install Node.js (used by Vite) and build front-end assets if package.json is present
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs \
+    && if [ -f package.json ]; then \
+        npm ci --silent || npm install --silent; \
+        npm run build --silent || true; \
     fi
+
+# Run Composer scripts (post-install) after assets are built
+RUN composer run-script post-autoload-dump --no-interaction || true
 
 # Donner les permissions appropriées
 RUN chown -R www-data:www-data /var/www/html \
+    && mkdir -p /var/www/html/storage/framework /var/www/html/bootstrap/cache || true \
     && chmod -R 755 /var/www/html/storage \
     && chmod -R 755 /var/www/html/bootstrap/cache
 
