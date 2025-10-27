@@ -1,406 +1,11 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Laravel API Documentation",
-        "description": "API documentation for Laravel application with Passport authentication",
+        "title": "API Banque",
+        "description": "API pour la gestion des comptes bancaires",
         "version": "1.0.0"
     },
-    "servers": [
-        {
-            "url": "http://localhost:8081",
-            "description": "API Server"
-        }
-    ],
     "paths": {
-        "/api/user": {
-            "get": {
-                "tags": [
-                    "Authentication"
-                ],
-                "summary": "Get authenticated user",
-                "description": "Returns the authenticated user information",
-                "operationId": "getUser",
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "id": {
-                                            "type": "integer",
-                                            "example": 1
-                                        },
-                                        "name": {
-                                            "type": "string",
-                                            "example": "John Doe"
-                                        },
-                                        "email": {
-                                            "type": "string",
-                                            "example": "john@example.com"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthenticated"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/welcome": {
-            "get": {
-                "tags": [
-                    "General"
-                ],
-                "summary": "Get welcome message",
-                "description": "Returns a welcome message and logs the request",
-                "operationId": "getWelcome",
-                "responses": {
-                    "200": {
-                        "description": "Successful operation",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Welcome to the Laravel API Service!"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/api/v1/comptes": {
-            "get": {
-                "tags": [
-                    "Comptes"
-                ],
-                "summary": "Lister tous les comptes",
-                "description": "Permet à l'admin de récupérer tous les comptes ou au client de récupérer ses propres comptes",
-                "operationId": "getComptes",
-                "parameters": [
-                    {
-                        "name": "page",
-                        "in": "query",
-                        "description": "Numéro de page",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 1,
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "description": "Nombre d'éléments par page",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 10,
-                            "maximum": 100,
-                            "minimum": 1
-                        }
-                    },
-                    {
-                        "name": "type",
-                        "in": "query",
-                        "description": "Filtrer par type",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "courant",
-                                "epargne",
-                                "entreprise"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "statut",
-                        "in": "query",
-                        "description": "Filtrer par statut",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "actif",
-                                "bloque",
-                                "ferme"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "search",
-                        "in": "query",
-                        "description": "Recherche par titulaire ou numéro",
-                        "required": false,
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "sort",
-                        "in": "query",
-                        "description": "Tri",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "dateCreation",
-                            "enum": [
-                                "dateCreation",
-                                "solde",
-                                "titulaire"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "order",
-                        "in": "query",
-                        "description": "Ordre",
-                        "required": false,
-                        "schema": {
-                            "type": "string",
-                            "default": "desc",
-                            "enum": [
-                                "asc",
-                                "desc"
-                            ]
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Liste des comptes récupérée avec succès",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
-                                        "data": {
-                                            "type": "array",
-                                            "items": {
-                                                "properties": {
-                                                    "id": {
-                                                        "type": "string",
-                                                        "format": "uuid",
-                                                        "example": "550e8400-e29b-41d4-a716-446655440000"
-                                                    },
-                                                    "numeroCompte": {
-                                                        "type": "string",
-                                                        "example": "C00123456"
-                                                    },
-                                                    "titulaire": {
-                                                        "type": "string",
-                                                        "example": "Amadou Diallo"
-                                                    },
-                                                    "type": {
-                                                        "type": "string",
-                                                        "example": "epargne"
-                                                    },
-                                                    "solde": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 1250000
-                                                    },
-                                                    "devise": {
-                                                        "type": "string",
-                                                        "example": "FCFA"
-                                                    },
-                                                    "dateCreation": {
-                                                        "type": "string",
-                                                        "format": "date",
-                                                        "example": "2023-03-15"
-                                                    },
-                                                    "statut": {
-                                                        "type": "string",
-                                                        "example": "bloque"
-                                                    },
-                                                    "metadata": {
-                                                        "properties": {
-                                                            "derniereModification": {
-                                                                "type": "string",
-                                                                "format": "date-time",
-                                                                "example": "2023-06-10T14:30:00Z"
-                                                            }
-                                                        },
-                                                        "type": "object"
-                                                    },
-                                                    "version": {
-                                                        "type": "integer",
-                                                        "example": 1
-                                                    }
-                                                },
-                                                "type": "object"
-                                            }
-                                        },
-                                        "pagination": {
-                                            "properties": {
-                                                "currentPage": {
-                                                    "type": "integer",
-                                                    "example": 1
-                                                },
-                                                "totalPages": {
-                                                    "type": "integer",
-                                                    "example": 3
-                                                },
-                                                "totalItems": {
-                                                    "type": "integer",
-                                                    "example": 25
-                                                },
-                                                "itemsPerPage": {
-                                                    "type": "integer",
-                                                    "example": 10
-                                                },
-                                                "hasNext": {
-                                                    "type": "boolean",
-                                                    "example": true
-                                                },
-                                                "hasPrevious": {
-                                                    "type": "boolean",
-                                                    "example": false
-                                                }
-                                            },
-                                            "type": "object"
-                                        },
-                                        "links": {
-                                            "properties": {
-                                                "self": {
-                                                    "type": "string",
-                                                    "example": "/api/v1/comptes?page=1&limit=10"
-                                                },
-                                                "next": {
-                                                    "type": "string",
-                                                    "example": "/api/v1/comptes?page=2&limit=10"
-                                                },
-                                                "first": {
-                                                    "type": "string",
-                                                    "example": "/api/v1/comptes?page=1&limit=10"
-                                                },
-                                                "last": {
-                                                    "type": "string",
-                                                    "example": "/api/v1/comptes?page=3&limit=10"
-                                                }
-                                            },
-                                            "type": "object"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Non autorisé",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Non autorisé"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Accès interdit",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Accès interdit"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            },
-            "post": {
-                "tags": [
-                    "Comptes"
-                ],
-                "summary": "Créer un compte",
-                "description": "Create a new compte. If the client doesn't exist, create the client and a user account.",
-                "operationId": "aa399240cc7c1f272aa92fe6d6b4e162",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "properties": {
-                                    "type": {
-                                        "type": "string"
-                                    },
-                                    "solde": {
-                                        "type": "number",
-                                        "format": "float"
-                                    },
-                                    "devise": {
-                                        "type": "string"
-                                    },
-                                    "client": {
-                                        "type": "object"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Compte créé"
-                    },
-                    "400": {
-                        "description": "Bad Request"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
         "/api/v1/auth/login": {
             "post": {
                 "tags": [
@@ -415,11 +20,11 @@
                         "application/json": {
                             "schema": {
                                 "required": [
-                                    "login",
+                                    "email",
                                     "password"
                                 ],
                                 "properties": {
-                                    "login": {
+                                    "email": {
                                         "description": "Email de l'utilisateur",
                                         "type": "string"
                                     },
@@ -495,7 +100,29 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Nouveaux tokens retournés"
+                        "description": "Nouveaux tokens retournés",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "refresh_token": {
+                                            "type": "string"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "401": {
                         "description": "Refresh token invalide ou expiré"
@@ -526,29 +153,306 @@
                 ]
             }
         },
-        "/api/v1/clients": {
+        "/api/v1/user": {
             "get": {
                 "tags": [
-                    "Clients"
+                    "Authentification"
                 ],
-                "summary": "Lister les clients",
-                "operationId": "b302d909c0e1166a2c033bfd17ed030f",
+                "summary": "Informations utilisateur",
+                "description": "Retourne les informations de l'utilisateur connecté",
+                "operationId": "6804f9f92bfdc4d8fe300f2c5cc35d19",
                 "responses": {
                     "200": {
-                        "description": "Liste des clients"
+                        "description": "Informations utilisateur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "email_verified_at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
                     }
-                }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/comptes": {
+            "get": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Lister tous les comptes",
+                "description": "Liste de tous les comptes avec pagination et filtres",
+                "operationId": "listComptes",
+                "parameters": [
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "description": "Numéro de la page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "description": "Nombre d'éléments par page",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "type",
+                        "in": "query",
+                        "description": "Type de compte",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "courant",
+                                "epargne",
+                                "entreprise"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "statut",
+                        "in": "query",
+                        "description": "Statut du compte",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "actif",
+                                "bloque",
+                                "ferme"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "search",
+                        "in": "query",
+                        "description": "Recherche sur numéro de compte ou nom du titulaire",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "sort",
+                        "in": "query",
+                        "description": "Champ de tri",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "dateCreation",
+                                "solde",
+                                "titulaire"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "order",
+                        "in": "query",
+                        "description": "Ordre de tri",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "asc",
+                                "desc"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des comptes récupérée avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "numeroCompte": {
+                                                        "type": "string"
+                                                    },
+                                                    "titulaire": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "solde": {
+                                                        "type": "number"
+                                                    },
+                                                    "devise": {
+                                                        "type": "string"
+                                                    },
+                                                    "dateCreation": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    },
+                                                    "statut": {
+                                                        "type": "string"
+                                                    },
+                                                    "metadata": {
+                                                        "properties": {
+                                                            "derniereModification": {
+                                                                "type": "string",
+                                                                "format": "date-time"
+                                                            },
+                                                            "version": {
+                                                                "type": "integer"
+                                                            }
+                                                        },
+                                                        "type": "object"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        },
+                                        "pagination": {
+                                            "properties": {
+                                                "currentPage": {
+                                                    "type": "integer",
+                                                    "example": 1
+                                                },
+                                                "totalPages": {
+                                                    "type": "integer",
+                                                    "example": 3
+                                                },
+                                                "totalItems": {
+                                                    "type": "integer",
+                                                    "example": 25
+                                                },
+                                                "itemsPerPage": {
+                                                    "type": "integer",
+                                                    "example": 10
+                                                },
+                                                "hasNext": {
+                                                    "type": "boolean",
+                                                    "example": true
+                                                },
+                                                "hasPrevious": {
+                                                    "type": "boolean",
+                                                    "example": false
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "links": {
+                                            "properties": {
+                                                "self": {
+                                                    "type": "string",
+                                                    "example": "/api/v1/comptes?page=1&limit=10"
+                                                },
+                                                "next": {
+                                                    "type": "string",
+                                                    "example": "/api/v1/comptes?page=2&limit=10"
+                                                },
+                                                "first": {
+                                                    "type": "string",
+                                                    "example": "/api/v1/comptes?page=1&limit=10"
+                                                },
+                                                "last": {
+                                                    "type": "string",
+                                                    "example": "/api/v1/comptes?page=3&limit=10"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non autorisé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
             },
             "post": {
                 "tags": [
-                    "Clients"
+                    "Comptes"
                 ],
-                "summary": "Créer un client",
-                "operationId": "72a51329a9c85d73e15e640b5b53e470",
+                "summary": "Créer un compte",
+                "description": "Create a new compte. If the client doesn't exist, create the client and a user account.",
+                "operationId": "aa399240cc7c1f272aa92fe6d6b4e162",
                 "requestBody": {
+                    "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "properties": {
+                                    "type": {
+                                        "type": "string"
+                                    },
+                                    "solde": {
+                                        "type": "number",
+                                        "format": "float"
+                                    },
+                                    "devise": {
+                                        "type": "string"
+                                    },
+                                    "client": {
+                                        "type": "object"
+                                    }
+                                },
                                 "type": "object"
                             }
                         }
@@ -556,89 +460,17 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Client créé"
-                    }
-                }
-            }
-        },
-        "/api/v1/clients/{id}": {
-            "get": {
-                "tags": [
-                    "Clients"
-                ],
-                "summary": "Récupérer un client",
-                "operationId": "0a628c8462ccec3d2798255b1015c22c",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Détails du client"
+                        "description": "Compte créé"
                     },
-                    "404": {
-                        "description": "Non trouvé"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Clients"
-                ],
-                "summary": "Mettre à jour un client",
-                "operationId": "d3fe03185b96f228b623f3b36d7c086f",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
+                    "400": {
+                        "description": "Bad Request"
                     }
                 },
-                "responses": {
-                    "200": {
-                        "description": "Client mis à jour"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Clients"
-                ],
-                "summary": "Supprimer un client",
-                "operationId": "edeb32faf4e5856e533c5dc13c18e780",
-                "parameters": [
+                "security": [
                     {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
+                        "bearerAuth": []
                     }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Supprimé"
-                    }
-                }
+                ]
             }
         },
         "/api/v1/comptes/{compteId}": {
@@ -779,7 +611,7 @@
                 ],
                 "summary": "Supprimer un compte par son id",
                 "description": "Supprime le compte spécifié. Seul le propriétaire ou un administrateur peut supprimer le compte.",
-                "operationId": "ab3055fcbf47068bf4988ac8104ab71e",
+                "operationId": "7bc9431c9cb3f6c5524d461a5b8d2389",
                 "parameters": [
                     {
                         "name": "compteId",
@@ -867,276 +699,39 @@
                     }
                 ]
             }
-        },
-        "/api/v1/transactions": {
-            "get": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Lister les transactions",
-                "operationId": "9115b43a55e6c92c81e6c62926e4034f",
-                "responses": {
-                    "200": {
-                        "description": "Liste des transactions"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Créer une transaction",
-                "operationId": "5968345d7524698be1b46f545cf2a41d",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Transaction créée"
-                    }
-                }
-            }
-        },
-        "/api/v1/transactions/{id}": {
-            "get": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Récupérer une transaction",
-                "operationId": "688bc3b066f6fe867ee32162fa08e71b",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Détails de la transaction"
-                    },
-                    "404": {
-                        "description": "Non trouvé"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Mettre à jour une transaction",
-                "operationId": "14886f2fd6159f736e882152b100b857",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Transaction mise à jour"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Transactions"
-                ],
-                "summary": "Supprimer une transaction",
-                "operationId": "34b1b428ede485de9ba57fd1a726a9cf",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Supprimé"
-                    }
-                }
-            }
-        },
-        "/api/v1/users": {
-            "get": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Lister les utilisateurs",
-                "operationId": "3ab81e3f9b24b4f36ab08d72349ac632",
-                "responses": {
-                    "200": {
-                        "description": "Liste des utilisateurs"
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Créer un utilisateur",
-                "operationId": "ba548b97148bb5c0d8cab3bc3f128bfd",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Utilisateur créé"
-                    }
-                }
-            }
-        },
-        "/api/v1/users/{id}": {
-            "get": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Récupérer un utilisateur",
-                "operationId": "daaf7a6169ee9348c3fddb07778598ff",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Détails de l'utilisateur"
-                    },
-                    "404": {
-                        "description": "Non trouvé"
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Mettre à jour un utilisateur",
-                "operationId": "59e98fba99e974815e27979dd58e2175",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Utilisateur mis à jour"
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Users"
-                ],
-                "summary": "Supprimer un utilisateur",
-                "operationId": "c30c64b8b7730b65c7714c9af4a6f5fa",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "204": {
-                        "description": "Supprimé"
-                    }
-                }
-            }
         }
     },
     "components": {
         "securitySchemes": {
+            "passport": {
+                "type": "oauth2",
+                "description": "Laravel Passport oauth2 security.",
+                "name": "passport",
+                "in": "header",
+                "flows": {
+                    "password": {
+                        "tokenUrl": "/oauth/token",
+                        "refreshUrl": "/oauth/token",
+                        "scopes": {}
+                    }
+                }
+            },
             "bearerAuth": {
                 "type": "http",
-                "description": "Enter token in format: Bearer {token}",
-                "bearerFormat": "JWT",
-                "scheme": "bearer"
+                "description": "Bearer token authentication",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
             }
         }
     },
     "tags": [
         {
-            "name": "Clients",
-            "description": "Gestion des clients"
-        },
-        {
-            "name": "Transactions",
-            "description": "Gestion des transactions"
-        },
-        {
-            "name": "Users",
-            "description": "Gestion des utilisateurs"
+            "name": "Comptes",
+            "description": "API Endpoints pour la gestion des comptes bancaires"
         },
         {
             "name": "Authentification",
             "description": "Authentification"
-        },
-        {
-            "name": "Comptes",
-            "description": "Comptes"
-        },
-        {
-            "name": "Authentication",
-            "description": "Authentication"
-        },
-        {
-            "name": "General",
-            "description": "General"
         }
     ]
 }

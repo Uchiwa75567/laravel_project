@@ -13,6 +13,8 @@ return [
                  * Route for accessing api documentation interface
                  */
                 'api' => 'api/documentation',
+                'docs' => 'api/docs',
+                'oauth2_callback' => 'api/oauth2-callback',
             ],
             'paths' => [
                 /*
@@ -43,8 +45,8 @@ return [
                 /*
                  * Absolute paths to directory containing the swagger annotations are stored.
                  */
-                'annotations' => [
-                    '/var/www/html/app',
+                                'annotations' => [
+                    base_path('app'),
                 ],
             ],
         ],
@@ -170,9 +172,12 @@ return [
         */
         'securityDefinitions' => [
             'securitySchemes' => [
-                /*
-                 * Examples of Security schemes
-                 */
+                'bearerAuth' => [
+                    'type' => 'http',
+                    'description' => 'Bearer token authentication',
+                    'scheme' => 'bearer',
+                    'bearerFormat' => 'JWT'
+                ],
                 /*
                 'api_key_security_example' => [ // Unique name of security
                     'type' => 'apiKey', // The type of the security scheme. Valid values are "basic", "apiKey" or "oauth2".
@@ -237,7 +242,7 @@ return [
          * Set this to `true` in development mode so that docs would be regenerated on each request
          * Set this to `false` to disable swagger generation on production
          */
-        'generate_always' => env('L5_SWAGGER_GENERATE_ALWAYS', false),
+        'generate_always' => env('L5_SWAGGER_GENERATE_ALWAYS', true),
 
         /*
          * Set this to `true` to generate a copy of documentation in yaml format

@@ -49,7 +49,7 @@ class UserSeeder extends Seeder
         ]);
 
         \App\Models\User::updateOrCreate([
-            'email' => 'pierre.martin@bankapi.com',
+            'email' => ' ',
         ], [
             'first_name' => 'Pierre',
             'last_name' => 'Martin',

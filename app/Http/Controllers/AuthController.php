@@ -8,6 +8,23 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http as HttpClient;
 
 class AuthController extends Controller
+    /**
+     * @OA\SecurityScheme(
+     *     type="oauth2",
+     *     description="Laravel Passport oauth2 security.",
+     *     name="passport",
+     *     securityScheme="passport",
+     *     in="header",
+     *     flows={
+     *         @OA\Flow(
+     *             flow="password",
+     *             tokenUrl="/oauth/token",
+     *             refreshUrl="/oauth/token",
+     *             scopes={}
+     *         )
+     *     }
+     * )
+     */
 {
     /**
      * @OA\Post(
@@ -17,28 +34,22 @@ class AuthController extends Controller
      *     description="Authentifie un utilisateur et retourne un access token + refresh token (OAuth2, JWT RS256)",
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 required={"login","password"},
-     *                 @OA\Property(property="login", type="string", description="Email de l'utilisateur"),
-     *                 @OA\Property(property="password", type="string", format="password", description="Mot de passe")
-     *             )
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", description="Email de l'utilisateur"),
+     *             @OA\Property(property="password", type="string", format="password", description="Mot de passe")
      *         )
      *     ),
      *     @OA\Response(
      *         response=200,
      *         description="Connexion réussie",
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 @OA\Property(property="access_token", type="string"),
-     *                 @OA\Property(property="refresh_token", type="string"),
-     *                 @OA\Property(property="expires_in", type="integer"),
-     *                 @OA\Property(property="token_type", type="string", example="Bearer")
-     *             )
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="access_token", type="string"),
+     *             @OA\Property(property="refresh_token", type="string"),
+     *             @OA\Property(property="expires_in", type="integer"),
+     *             @OA\Property(property="token_type", type="string", example="Bearer")
      *         )
      *     ),
      *     @OA\Response(response=401, description="Identifiants invalides")
@@ -47,7 +58,7 @@ class AuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         $params = $request->validate([
-            'login' => 'required|email',
+            'email' => 'required|email',
             'password' => 'required|string',
         ]);
 
@@ -56,11 +67,11 @@ class AuthController extends Controller
             return response()->json(['error' => 'OAuth password client non configuré'], 500);
         }
 
-        $tokenResponse = HttpClient::asForm()->post(url('/oauth/token'), [
+        $tokenResponse = HttpClient::asForm()->post('http://localhost/oauth/token', [
             'grant_type' => 'password',
             'client_id' => $client->id,
             'client_secret' => $client->secret,
-            'username' => $params['login'],
+            'username' => $params['email'],
             'password' => $params['password'],
             'scope' => '',
         ]);
@@ -86,16 +97,23 @@ class AuthController extends Controller
      *     description="Échange un refresh_token contre un nouvel access_token",
      *     @OA\RequestBody(
      *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 required={"refresh_token"},
-     *                 @OA\Property(property="refresh_token", type="string", description="Refresh token")
-     *             )
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"refresh_token"},
+     *             @OA\Property(property="refresh_token", type="string", description="Refresh token")
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Nouveaux tokens retournés"),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Nouveaux tokens retournés",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="access_token", type="string"),
+     *             @OA\Property(property="refresh_token", type="string"),
+     *             @OA\Property(property="expires_in", type="integer"),
+     *             @OA\Property(property="token_type", type="string", example="Bearer")
+     *         )
+     *     ),
      *     @OA\Response(response=401, description="Refresh token invalide ou expiré")
      * )
      */
@@ -110,7 +128,7 @@ class AuthController extends Controller
             return response()->json(['error' => 'OAuth password client non configuré'], 500);
         }
 
-        $tokenResponse = HttpClient::asForm()->post(url('/oauth/token'), [
+        $tokenResponse = HttpClient::asForm()->post('http://localhost/oauth/token', [
             'grant_type' => 'refresh_token',
             'client_id' => $client->id,
             'client_secret' => $client->secret,
@@ -176,5 +194,37 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => 'Erreur lors de la déconnexion'], 500);
         }
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/user",
+     *     tags={"Authentification"},
+     *     summary="Informations utilisateur",
+     *     description="Retourne les informations de l'utilisateur connecté",
+     *     security={{"passport": {}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Informations utilisateur",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="id", type="string", format="uuid"),
+     *             @OA\Property(property="name", type="string"),
+     *             @OA\Property(property="email", type="string"),
+     *             @OA\Property(property="email_verified_at", type="string", format="date-time", nullable=true),
+     *             @OA\Property(property="created_at", type="string", format="date-time"),
+     *             @OA\Property(property="updated_at", type="string", format="date-time")
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Non authentifié")
+     * )
+     */
+    public function user(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Utilisateur non authentifié'], 401);
+        }
+        return response()->json($user);
     }
 }

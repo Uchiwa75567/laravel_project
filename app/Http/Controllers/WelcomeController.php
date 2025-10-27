@@ -8,17 +8,25 @@ use Illuminate\Support\Facades\Log;
 class WelcomeController extends Controller
 {
     /**
-     * Returns a welcome message and logs the request.
+     * Return a welcome message and log the request.
      *
-     * @param Request $request
+     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function welcome(Request $request)
     {
-        // Log request metadata: method and path
-        Log::info("Request received: {$request->method()} {$request->path()}");
+        // Log the request metadata
+        Log::info('Request received', [
+            'method' => $request->method(),
+            'path' => $request->path(),
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'timestamp' => now(),
+        ]);
 
-        // Return JSON welcome message
-        return response()->json(['message' => 'Welcome to the Laravel API Service!']);
+        // Return JSON response
+        return response()->json([
+            'message' => 'Welcome to the Laravel API Service!'
+        ]);
     }
 }
