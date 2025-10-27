@@ -11,10 +11,10 @@ class AuthController extends Controller
 {
     /**
      * @OA\Post(
-     *     path="/v1/auth/login",
+     *     path="/api/v1/auth/login",
      *     tags={"Authentification"},
      *     summary="Connexion utilisateur",
-     *     description="Authentifie un utilisateur et retourne un token d'accès",
+     *     description="Authentifie un utilisateur et retourne un access token + refresh token (OAuth2, JWT RS256)",
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\MediaType(
@@ -22,7 +22,7 @@ class AuthController extends Controller
      *             @OA\Schema(
      *                 type="object",
      *                 required={"login","password"},
-     *                 @OA\Property(property="login", type="string", description="Login (email) de l'utilisateur"),
+     *                 @OA\Property(property="login", type="string", description="Email de l'utilisateur"),
      *                 @OA\Property(property="password", type="string", format="password", description="Mot de passe")
      *             )
      *         )
@@ -34,10 +34,10 @@ class AuthController extends Controller
      *             mediaType="application/json",
      *             @OA\Schema(
      *                 type="object",
-     *                 @OA\Property(property="success", type="boolean", example=true),
      *                 @OA\Property(property="access_token", type="string"),
      *                 @OA\Property(property="refresh_token", type="string"),
-     *                 @OA\Property(property="expires_in", type="integer")
+     *                 @OA\Property(property="expires_in", type="integer"),
+     *                 @OA\Property(property="token_type", type="string", example="Bearer")
      *             )
      *         )
      *     ),
@@ -53,7 +53,7 @@ class AuthController extends Controller
 
         $client = DB::table('oauth_clients')->where('password_client', true)->first();
         if (!$client) {
-            return response()->json(['success' => false, 'message' => 'OAuth password client not configured'], 500);
+            return response()->json(['error' => 'OAuth password client non configuré'], 500);
         }
 
         $tokenResponse = HttpClient::asForm()->post(url('/oauth/token'), [
@@ -66,13 +66,12 @@ class AuthController extends Controller
         ]);
 
         if ($tokenResponse->failed()) {
-            return response()->json(['success' => false, 'message' => 'Invalid credentials or oauth error', 'details' => $tokenResponse->body()], 401);
+            return response()->json(['error' => 'Identifiants invalides'], 401);
         }
 
         $body = $tokenResponse->json();
 
         return response()->json([
-            'success' => true,
             'access_token' => $body['access_token'] ?? null,
             'refresh_token' => $body['refresh_token'] ?? null,
             'expires_in' => $body['expires_in'] ?? null,
@@ -82,93 +81,10 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/v1/auth/register",
+     *     path="/api/v1/auth/refresh",
      *     tags={"Authentification"},
-     *     summary="Inscription d'un nouveau client",
-     *     description="Crée un nouveau compte client",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         @OA\MediaType(
-     *             mediaType="application/json",
-     *             @OA\Schema(
-     *                 type="object",
-     *                 required={"login","password","nom","nci","email","telephone","adresse"},
-     *                 @OA\Property(property="login", type="string"),
-     *                 @OA\Property(property="password", type="string", format="password"),
-     *                 @OA\Property(property="nom", type="string"),
-     *                 @OA\Property(property="nci", type="string"),
-     *                 @OA\Property(property="email", type="string", format="email"),
-     *                 @OA\Property(property="telephone", type="string"),
-     *                 @OA\Property(property="adresse", type="string")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=201, description="Inscription réussie"),
-     *     @OA\Response(response=422, description="Erreur de validation")
-     * )
-     */
-    public function register(Request $request): JsonResponse
-    {
-        $params = $request->validate([
-            'login' => 'required|email',
-            'password' => 'required|string|min:8',
-            'nom' => 'required|string',
-            'nci' => 'nullable|string',
-            'email' => 'required|email|unique:users,email',
-            'telephone' => 'required|string|unique:users,phone',
-            'adresse' => 'nullable|string',
-        ]);
-
-        $userClass = \App\Models\User::class;
-        $user = $userClass::create([
-            'name' => $params['nom'],
-            'email' => $params['email'],
-            'phone' => $params['telephone'],
-            'role' => 'client',
-            'password' => bcrypt($params['password']),
-            'preferences' => [
-                'nci' => $params['nci'] ?? null,
-                'adresse' => $params['adresse'] ?? null,
-                'login' => $params['login'] ?? null,
-            ],
-        ]);
-
-        $client = DB::table('oauth_clients')->where('password_client', true)->first();
-        if (!$client) {
-            return response()->json(['success' => false, 'message' => 'OAuth password client not configured'], 500);
-        }
-
-        $tokenResponse = HttpClient::asForm()->post(url('/oauth/token'), [
-            'grant_type' => 'password',
-            'client_id' => $client->id,
-            'client_secret' => $client->secret,
-            'username' => $params['email'],
-            'password' => $params['password'],
-            'scope' => '',
-        ]);
-
-        if ($tokenResponse->failed()) {
-            return response()->json(['success' => false, 'message' => 'Unable to issue token', 'details' => $tokenResponse->body()], 500);
-        }
-
-        $body = $tokenResponse->json();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Inscription réussie',
-            'data' => [
-                'user' => $user,
-                'token' => $body['access_token'] ?? null,
-                'refresh_token' => $body['refresh_token'] ?? null,
-            ],
-        ], 201);
-    }
-
-    /**
-     * @OA\Post(
-     *     path="/v1/auth/refresh",
-     *     tags={"Authentification"},
-     *     summary="Refresh token",
+     *     summary="Renouvelle l'access token",
+     *     description="Renouvelle l'access token via le refresh token (OAuth2, JWT RS256)",
      *     @OA\RequestBody(
      *         required=true,
      *         @OA\MediaType(
@@ -180,7 +96,7 @@ class AuthController extends Controller
      *             )
      *         )
      *     ),
-     *     @OA\Response(response=200, description="Token refreshed")
+     *     @OA\Response(response=200, description="Token renouvelé")
      * )
      */
     public function refresh(Request $request): JsonResponse
@@ -191,7 +107,7 @@ class AuthController extends Controller
 
         $client = DB::table('oauth_clients')->where('password_client', true)->first();
         if (!$client) {
-            return response()->json(['success' => false, 'message' => 'OAuth password client not configured'], 500);
+            return response()->json(['error' => 'OAuth password client non configuré'], 500);
         }
 
         $tokenResponse = HttpClient::asForm()->post(url('/oauth/token'), [
@@ -203,13 +119,12 @@ class AuthController extends Controller
         ]);
 
         if ($tokenResponse->failed()) {
-            return response()->json(['success' => false, 'message' => 'Invalid refresh token or oauth error', 'details' => $tokenResponse->body()], 401);
+            return response()->json(['error' => 'Refresh token invalide'], 401);
         }
 
         $body = $tokenResponse->json();
 
         return response()->json([
-            'success' => true,
             'access_token' => $body['access_token'] ?? null,
             'refresh_token' => $body['refresh_token'] ?? null,
             'expires_in' => $body['expires_in'] ?? null,
@@ -219,10 +134,10 @@ class AuthController extends Controller
 
     /**
      * @OA\Post(
-     *     path="/v1/auth/logout",
+     *     path="/api/v1/auth/logout",
      *     tags={"Authentification"},
      *     summary="Déconnexion",
-     *     description="Révoque le token d'accès actuel",
+     *     description="Invalide les tokens d'accès et de refresh (OAuth2, JWT RS256)",
      *     security={{"bearerAuth":{}}},
      *     @OA\Response(response=200, description="Déconnexion réussie")
      * )
@@ -231,7 +146,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
         if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Not authenticated'], 401);
+            return response()->json(['error' => 'Non authentifié'], 401);
         }
 
         $token = $user->token();
@@ -240,66 +155,6 @@ class AuthController extends Controller
             $token->revoke();
         }
 
-        return response()->json(['success' => true, 'message' => 'Déconnexion réussie']);
-    }
-
-    /**
-     * @OA\Get(
-     *     path="/v1/auth/authentification",
-     *     tags={"Authentification"},
-     *     summary="Informations d'authentification",
-     *     description="Retourne les informations de l'utilisateur authentifié",
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Response(response=200, description="OK")
-     * )
-     */
-    public function authentification(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Not authenticated'], 401);
-        }
-
-        return response()->json(['success' => true, 'data' => ['user' => $user]]);
-    }
-
-    /**
-     * @OA\Delete(
-     *     path="/v1/auth/delete/{id}",
-     *     tags={"Authentification"},
-     *     summary="Supprimer un compte utilisateur par son id",
-     *     description="Supprime le compte de l'utilisateur spécifié. Seul l'utilisateur lui-même ou un administrateur peut supprimer le compte.",
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID de l'utilisateur à supprimer",
-     *         @OA\Schema(type="string")
-     *     ),
-     *     @OA\Response(response=200, description="Compte supprimé avec succès"),
-     *     @OA\Response(response=403, description="Action non autorisée"),
-     *     @OA\Response(response=404, description="Utilisateur non trouvé")
-     * )
-     */
-    public function deleteAccount(Request $request, $id): JsonResponse
-    {
-        $user = $request->user();
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'Not authenticated'], 401);
-        }
-
-        // Only allow self-deletion or admin
-        if ($user->id != $id && $user->role !== 'admin') {
-            return response()->json(['success' => false, 'message' => 'Action non autorisée'], 403);
-        }
-
-        $userToDelete = \App\Models\User::find($id);
-        if (!$userToDelete) {
-            return response()->json(['success' => false, 'message' => 'Utilisateur non trouvé'], 404);
-        }
-
-        $userToDelete->delete();
-        return response()->json(['success' => true, 'message' => 'Compte supprimé avec succès']);
+        return response()->json(['message' => 'Déconnexion réussie']);
     }
 }

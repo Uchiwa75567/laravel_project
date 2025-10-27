@@ -401,14 +401,14 @@
                 ]
             }
         },
-        "/v1/auth/login": {
+        "/api/v1/auth/login": {
             "post": {
                 "tags": [
                     "Authentification"
                 ],
                 "summary": "Connexion utilisateur",
-                "description": "Authentifie un utilisateur et retourne un token d'accès",
-                "operationId": "a1a0dd98bb5ac2c2340c31bf02f09d1e",
+                "description": "Authentifie un utilisateur et retourne un access token + refresh token (OAuth2, JWT RS256)",
+                "operationId": "5db09a35f965c6ca7529ed3c3cae8e21",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -420,7 +420,7 @@
                                 ],
                                 "properties": {
                                     "login": {
-                                        "description": "Login (email) de l'utilisateur",
+                                        "description": "Email de l'utilisateur",
                                         "type": "string"
                                     },
                                     "password": {
@@ -441,10 +441,6 @@
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": true
-                                        },
                                         "access_token": {
                                             "type": "string"
                                         },
@@ -453,6 +449,10 @@
                                         },
                                         "expires_in": {
                                             "type": "integer"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
                                         }
                                     },
                                     "type": "object"
@@ -466,75 +466,14 @@
                 }
             }
         },
-        "/v1/auth/register": {
+        "/api/v1/auth/refresh": {
             "post": {
                 "tags": [
                     "Authentification"
                 ],
-                "summary": "Inscription d'un nouveau client",
-                "description": "Crée un nouveau compte client",
-                "operationId": "5350ff35fdf52f6673faf8235a5096e9",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "login",
-                                    "password",
-                                    "nom",
-                                    "nci",
-                                    "email",
-                                    "telephone",
-                                    "adresse"
-                                ],
-                                "properties": {
-                                    "login": {
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "type": "string",
-                                        "format": "password"
-                                    },
-                                    "nom": {
-                                        "type": "string"
-                                    },
-                                    "nci": {
-                                        "type": "string"
-                                    },
-                                    "email": {
-                                        "type": "string",
-                                        "format": "email"
-                                    },
-                                    "telephone": {
-                                        "type": "string"
-                                    },
-                                    "adresse": {
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "201": {
-                        "description": "Inscription réussie"
-                    },
-                    "422": {
-                        "description": "Erreur de validation"
-                    }
-                }
-            }
-        },
-        "/v1/auth/refresh": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Refresh token",
-                "operationId": "0fae093e8275b8088745887edcdccba1",
+                "summary": "Renouvelle l'access token",
+                "description": "Renouvelle l'access token via le refresh token (OAuth2, JWT RS256)",
+                "operationId": "05bd0482845348cafa4da9e4fb7d0ffb",
                 "requestBody": {
                     "required": true,
                     "content": {
@@ -555,79 +494,22 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Token refreshed"
+                        "description": "Token renouvelé"
                     }
                 }
             }
         },
-        "/v1/auth/logout": {
+        "/api/v1/auth/logout": {
             "post": {
                 "tags": [
                     "Authentification"
                 ],
                 "summary": "Déconnexion",
-                "description": "Révoque le token d'accès actuel",
-                "operationId": "5d08897a20d1ebcb2668463963e0097e",
+                "description": "Invalide les tokens d'accès et de refresh (OAuth2, JWT RS256)",
+                "operationId": "8f1a443d39c3bf383f851fbb51253c64",
                 "responses": {
                     "200": {
                         "description": "Déconnexion réussie"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1/auth/authentification": {
-            "get": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Informations d'authentification",
-                "description": "Retourne les informations de l'utilisateur authentifié",
-                "operationId": "bc7285f4c4f193645eac6841da312fbb",
-                "responses": {
-                    "200": {
-                        "description": "OK"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/v1/auth/delete/{id}": {
-            "delete": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Supprimer un compte utilisateur par son id",
-                "description": "Supprime le compte de l'utilisateur spécifié. Seul l'utilisateur lui-même ou un administrateur peut supprimer le compte.",
-                "operationId": "8ce31239b8c590fab1e41410a26934d9",
-                "parameters": [
-                    {
-                        "name": "id",
-                        "in": "path",
-                        "description": "ID de l'utilisateur à supprimer",
-                        "required": true,
-                        "schema": {
-                            "type": "string"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Compte supprimé avec succès"
-                    },
-                    "403": {
-                        "description": "Action non autorisée"
-                    },
-                    "404": {
-                        "description": "Utilisateur non trouvé"
                     }
                 },
                 "security": [

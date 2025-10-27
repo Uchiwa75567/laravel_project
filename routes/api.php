@@ -43,7 +43,7 @@ Route::prefix('v1')->group(function () {
     Route::post('/auth/login', [\App\Http\Controllers\AuthController::class, 'login'])->middleware(['throttle:ip-minute']);
     Route::post('/auth/register', [\App\Http\Controllers\AuthController::class, 'register'])->middleware(['throttle:ip-minute']);
     Route::post('/auth/refresh', [\App\Http\Controllers\AuthController::class, 'refresh'])->middleware(['throttle:ip-minute']);
-    Route::post('/auth/logout', [\App\Http\Controllers\AuthController::class, 'logout'])->middleware(['auth:api','throttle:user-hour','throttle:ip-minute']);
+    Route::middleware('auth:api')->post('/api/v1/auth/logout', [App\Http\Controllers\AuthController::class, 'logout']);
     Route::get('/auth/authentification', [\App\Http\Controllers\AuthController::class, 'authentification'])->middleware(['auth:api','throttle:user-hour']);
     Route::middleware('auth:api')->delete('/v1/auth/delete/{id}', [App\Http\Controllers\AuthController::class, 'deleteAccount']);
 });

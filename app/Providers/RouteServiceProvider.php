@@ -24,23 +24,18 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
-
-        // Per-user: 1000 requests per hour
+        // Limite par utilisateur : 1000 requêtes/heure
         RateLimiter::for('user-hour', function (Request $request) {
             $key = $request->user()?->id ?: $request->ip();
             return Limit::perHour(1000)->by($key);
         });
 
-        // Per-IP: 100 requests per minute
+        // Limite par IP : 100 requêtes/minute
         RateLimiter::for('ip-minute', function (Request $request) {
             return Limit::perMinute(100)->by($request->ip());
         });
 
         $this->routes(function () {
-            // Apply global API rate limits: per-user (1000/hour) and per-IP (100/minute)
             Route::middleware(['api', 'throttle:user-hour', 'throttle:ip-minute'])
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));
