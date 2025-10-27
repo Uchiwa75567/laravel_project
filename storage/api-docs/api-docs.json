@@ -1,45 +1,239 @@
 {
     "openapi": "3.0.0",
     "info": {
-        "title": "Laravel API Documentation",
-        "description": "API documentation for Laravel application with Passport authentication",
+        "title": "API Banque",
+        "description": "API pour la gestion des comptes bancaires",
         "version": "1.0.0"
     },
-    "servers": [
-        {
-            "url": "http://localhost:8081",
-            "description": "API Server"
-        }
-    ],
     "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Connexion utilisateur",
+                "description": "Authentifie un utilisateur et retourne un access token + refresh token (OAuth2, JWT RS256)",
+                "operationId": "5db09a35f965c6ca7529ed3c3cae8e21",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "email",
+                                    "password"
+                                ],
+                                "properties": {
+                                    "email": {
+                                        "description": "Email de l'utilisateur",
+                                        "type": "string"
+                                    },
+                                    "password": {
+                                        "description": "Mot de passe",
+                                        "type": "string",
+                                        "format": "password"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Connexion réussie",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "refresh_token": {
+                                            "type": "string"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Identifiants invalides"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Refresh token",
+                "description": "Échange un refresh_token contre un nouvel access_token",
+                "operationId": "05bd0482845348cafa4da9e4fb7d0ffb",
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "refresh_token"
+                                ],
+                                "properties": {
+                                    "refresh_token": {
+                                        "description": "Refresh token",
+                                        "type": "string"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nouveaux tokens retournés",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "access_token": {
+                                            "type": "string"
+                                        },
+                                        "refresh_token": {
+                                            "type": "string"
+                                        },
+                                        "expires_in": {
+                                            "type": "integer"
+                                        },
+                                        "token_type": {
+                                            "type": "string",
+                                            "example": "Bearer"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Refresh token invalide ou expiré"
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Logout",
+                "description": "Révoque l'access token et ses refresh tokens associés",
+                "operationId": "8f1a443d39c3bf383f851fbb51253c64",
+                "responses": {
+                    "200": {
+                        "description": "Déconnecté"
+                    },
+                    "400": {
+                        "description": "Token introuvable ou invalide"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/user": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Informations utilisateur",
+                "description": "Retourne les informations de l'utilisateur connecté",
+                "operationId": "6804f9f92bfdc4d8fe300f2c5cc35d19",
+                "responses": {
+                    "200": {
+                        "description": "Informations utilisateur",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "id": {
+                                            "type": "string",
+                                            "format": "uuid"
+                                        },
+                                        "name": {
+                                            "type": "string"
+                                        },
+                                        "email": {
+                                            "type": "string"
+                                        },
+                                        "email_verified_at": {
+                                            "type": "string",
+                                            "format": "date-time",
+                                            "nullable": true
+                                        },
+                                        "created_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        },
+                                        "updated_at": {
+                                            "type": "string",
+                                            "format": "date-time"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Non authentifié"
+                    }
+                },
+                "security": [
+                    {
+                        "passport": []
+                    }
+                ]
+            }
+        },
         "/api/v1/comptes": {
             "get": {
                 "tags": [
                     "Comptes"
                 ],
                 "summary": "Lister tous les comptes",
-                "description": "Permet \u00e0 l'admin de r\u00e9cup\u00e9rer tous les comptes ou au client de r\u00e9cup\u00e9rer ses propres comptes",
-                "operationId": "getComptes",
+                "description": "Liste de tous les comptes avec pagination et filtres",
+                "operationId": "listComptes",
                 "parameters": [
                     {
                         "name": "page",
                         "in": "query",
-                        "description": "Num\u00e9ro de page",
+                        "description": "Numéro de la page",
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "default": 1,
                             "minimum": 1
                         }
                     },
                     {
                         "name": "limit",
                         "in": "query",
-                        "description": "Nombre d'\u00e9l\u00e9ments par page",
+                        "description": "Nombre d'éléments par page",
                         "required": false,
                         "schema": {
                             "type": "integer",
-                            "default": 10,
                             "maximum": 100,
                             "minimum": 1
                         }
@@ -47,7 +241,7 @@
                     {
                         "name": "type",
                         "in": "query",
-                        "description": "Filtrer par type",
+                        "description": "Type de compte",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -61,7 +255,7 @@
                     {
                         "name": "statut",
                         "in": "query",
-                        "description": "Filtrer par statut",
+                        "description": "Statut du compte",
                         "required": false,
                         "schema": {
                             "type": "string",
@@ -75,7 +269,7 @@
                     {
                         "name": "search",
                         "in": "query",
-                        "description": "Recherche par titulaire ou num\u00e9ro",
+                        "description": "Recherche sur numéro de compte ou nom du titulaire",
                         "required": false,
                         "schema": {
                             "type": "string"
@@ -84,11 +278,10 @@
                     {
                         "name": "sort",
                         "in": "query",
-                        "description": "Tri",
+                        "description": "Champ de tri",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "default": "dateCreation",
                             "enum": [
                                 "dateCreation",
                                 "solde",
@@ -99,11 +292,10 @@
                     {
                         "name": "order",
                         "in": "query",
-                        "description": "Ordre",
+                        "description": "Ordre de tri",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "default": "desc",
                             "enum": [
                                 "asc",
                                 "desc"
@@ -113,7 +305,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Liste des comptes r\u00e9cup\u00e9r\u00e9e avec succ\u00e8s",
+                        "description": "Liste des comptes récupérée avec succès",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -128,52 +320,41 @@
                                                 "properties": {
                                                     "id": {
                                                         "type": "string",
-                                                        "format": "uuid",
-                                                        "example": "550e8400-e29b-41d4-a716-446655440000"
+                                                        "format": "uuid"
                                                     },
                                                     "numeroCompte": {
-                                                        "type": "string",
-                                                        "example": "C00123456"
+                                                        "type": "string"
                                                     },
                                                     "titulaire": {
-                                                        "type": "string",
-                                                        "example": "Amadou Diallo"
+                                                        "type": "string"
                                                     },
                                                     "type": {
-                                                        "type": "string",
-                                                        "example": "epargne"
+                                                        "type": "string"
                                                     },
                                                     "solde": {
-                                                        "type": "number",
-                                                        "format": "float",
-                                                        "example": 1250000
+                                                        "type": "number"
                                                     },
                                                     "devise": {
-                                                        "type": "string",
-                                                        "example": "FCFA"
+                                                        "type": "string"
                                                     },
                                                     "dateCreation": {
                                                         "type": "string",
-                                                        "format": "date",
-                                                        "example": "2023-03-15"
+                                                        "format": "date-time"
                                                     },
                                                     "statut": {
-                                                        "type": "string",
-                                                        "example": "bloque"
+                                                        "type": "string"
                                                     },
                                                     "metadata": {
                                                         "properties": {
                                                             "derniereModification": {
                                                                 "type": "string",
-                                                                "format": "date-time",
-                                                                "example": "2023-06-10T14:30:00Z"
+                                                                "format": "date-time"
+                                                            },
+                                                            "version": {
+                                                                "type": "integer"
                                                             }
                                                         },
                                                         "type": "object"
-                                                    },
-                                                    "version": {
-                                                        "type": "integer",
-                                                        "example": 1
                                                     }
                                                 },
                                                 "type": "object"
@@ -236,44 +417,7 @@
                         }
                     },
                     "401": {
-                        "description": "Non autoris\u00e9",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Non autoris\u00e9"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "403": {
-                        "description": "Acc\u00e8s interdit",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "success": {
-                                            "type": "boolean",
-                                            "example": false
-                                        },
-                                        "message": {
-                                            "type": "string",
-                                            "example": "Acc\u00e8s interdit"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
+                        "description": "Non autorisé"
                     }
                 },
                 "security": [
@@ -286,7 +430,7 @@
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "Cr\u00e9er un compte",
+                "summary": "Créer un compte",
                 "description": "Create a new compte. If the client doesn't exist, create the client and a user account.",
                 "operationId": "aa399240cc7c1f272aa92fe6d6b4e162",
                 "requestBody": {
@@ -316,135 +460,10 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Compte cr\u00e9\u00e9"
+                        "description": "Compte créé"
                     },
                     "400": {
                         "description": "Bad Request"
-                    }
-                },
-                "security": [
-                    {
-                        "bearerAuth": []
-                    }
-                ]
-            }
-        },
-        "/api/v1/auth/login": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Connexion utilisateur",
-                "description": "Authentifie un utilisateur et retourne un access token + refresh token (OAuth2, JWT RS256)",
-                "operationId": "5db09a35f965c6ca7529ed3c3cae8e21",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "login",
-                                    "password"
-                                ],
-                                "properties": {
-                                    "login": {
-                                        "description": "Email de l'utilisateur",
-                                        "type": "string"
-                                    },
-                                    "password": {
-                                        "description": "Mot de passe",
-                                        "type": "string",
-                                        "format": "password"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Connexion r\u00e9ussie",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "access_token": {
-                                            "type": "string"
-                                        },
-                                        "refresh_token": {
-                                            "type": "string"
-                                        },
-                                        "expires_in": {
-                                            "type": "integer"
-                                        },
-                                        "token_type": {
-                                            "type": "string",
-                                            "example": "Bearer"
-                                        }
-                                    },
-                                    "type": "object"
-                                }
-                            }
-                        }
-                    },
-                    "401": {
-                        "description": "Identifiants invalides"
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/refresh": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Refresh token",
-                "description": "\u00c9change un refresh_token contre un nouvel access_token",
-                "operationId": "05bd0482845348cafa4da9e4fb7d0ffb",
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "required": [
-                                    "refresh_token"
-                                ],
-                                "properties": {
-                                    "refresh_token": {
-                                        "description": "Refresh token",
-                                        "type": "string"
-                                    }
-                                },
-                                "type": "object"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Nouveaux tokens retourn\u00e9s"
-                    },
-                    "401": {
-                        "description": "Refresh token invalide ou expir\u00e9"
-                    }
-                }
-            }
-        },
-        "/api/v1/auth/logout": {
-            "post": {
-                "tags": [
-                    "Authentification"
-                ],
-                "summary": "Logout",
-                "description": "R\u00e9voque l'access token et ses refresh tokens associ\u00e9s",
-                "operationId": "8f1a443d39c3bf383f851fbb51253c64",
-                "responses": {
-                    "200": {
-                        "description": "D\u00e9connect\u00e9"
-                    },
-                    "400": {
-                        "description": "Token introuvable ou invalide"
                     }
                 },
                 "security": [
@@ -459,7 +478,7 @@
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "R\u00e9cup\u00e9rer un compte par ID",
+                "summary": "Récupérer un compte par ID",
                 "description": "Retrieve a specific compte by ID.",
                 "operationId": "a850aaf9d25eae6f82bf59804b2a235e",
                 "parameters": [
@@ -476,7 +495,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Compte trouv\u00e9",
+                        "description": "Compte trouvé",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -560,7 +579,7 @@
                                                 },
                                                 "message": {
                                                     "type": "string",
-                                                    "example": "Le compte avec l'ID sp\u00e9cifi\u00e9 n'existe pas."
+                                                    "example": "Le compte avec l'ID spécifié n'existe pas."
                                                 },
                                                 "details": {
                                                     "properties": {
@@ -591,13 +610,13 @@
                     "Comptes"
                 ],
                 "summary": "Supprimer un compte par son id",
-                "description": "Supprime le compte sp\u00e9cifi\u00e9. Seul le propri\u00e9taire ou un administrateur peut supprimer le compte.",
-                "operationId": "ab3055fcbf47068bf4988ac8104ab71e",
+                "description": "Supprime le compte spécifié. Seul le propriétaire ou un administrateur peut supprimer le compte.",
+                "operationId": "7bc9431c9cb3f6c5524d461a5b8d2389",
                 "parameters": [
                     {
                         "name": "compteId",
                         "in": "path",
-                        "description": "ID du compte \u00e0 supprimer",
+                        "description": "ID du compte à supprimer",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -606,13 +625,13 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Compte supprim\u00e9 avec succ\u00e8s"
+                        "description": "Compte supprimé avec succès"
                     },
                     "403": {
-                        "description": "Action non autoris\u00e9e"
+                        "description": "Action non autorisée"
                     },
                     "404": {
-                        "description": "Compte non trouv\u00e9"
+                        "description": "Compte non trouvé"
                     }
                 },
                 "security": [
@@ -626,13 +645,13 @@
                     "Comptes"
                 ],
                 "summary": "Modifier les informations d'un compte",
-                "description": "Tous les champs sont optionnels, mais au moins un doit \u00eatre modifi\u00e9. T\u00e9l\u00e9phone unique et valide, email unique, mot de passe s\u00e9curis\u00e9.",
+                "description": "Tous les champs sont optionnels, mais au moins un doit être modifié. Téléphone unique et valide, email unique, mot de passe sécurisé.",
                 "operationId": "53945335c65ff02b87b04b21ad40d816",
                 "parameters": [
                     {
                         "name": "compteId",
                         "in": "path",
-                        "description": "ID du compte \u00e0 modifier",
+                        "description": "ID du compte à modifier",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -671,7 +690,7 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Compte mis \u00e0 jour avec succ\u00e8s"
+                        "description": "Compte mis à jour avec succès"
                     }
                 },
                 "security": [
@@ -684,22 +703,35 @@
     },
     "components": {
         "securitySchemes": {
+            "passport": {
+                "type": "oauth2",
+                "description": "Laravel Passport oauth2 security.",
+                "name": "passport",
+                "in": "header",
+                "flows": {
+                    "password": {
+                        "tokenUrl": "/oauth/token",
+                        "refreshUrl": "/oauth/token",
+                        "scopes": {}
+                    }
+                }
+            },
             "bearerAuth": {
                 "type": "http",
-                "description": "Enter token in format: Bearer {token}",
-                "bearerFormat": "JWT",
-                "scheme": "bearer"
+                "description": "Bearer token authentication",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
             }
         }
     },
     "tags": [
         {
-            "name": "Authentification",
-            "description": "Authentification"
+            "name": "Comptes",
+            "description": "API Endpoints pour la gestion des comptes bancaires"
         },
         {
-            "name": "Comptes",
-            "description": "Comptes"
+            "name": "Authentification",
+            "description": "Authentification"
         }
     ]
 }

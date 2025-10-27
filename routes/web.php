@@ -16,3 +16,5 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function () {
     return view('welcome');
 });
+
+// La documentation Swagger n'a pas besoin de redirection car elle est déjà accessible via /api/documentation

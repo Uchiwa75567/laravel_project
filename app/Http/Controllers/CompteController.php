@@ -7,11 +7,122 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use OpenApi\Annotations as OA;
 
+/**
+ * @OA\Tag(
+ *     name="Comptes",
+ *     description="API Endpoints pour la gestion des comptes bancaires"
+ * )
+ */
 class CompteController extends Controller
 {
     /**
-     * Display a listing of the comptes.
+     * @OA\Get(
+     *     path="/api/v1/comptes",
+     *     tags={"Comptes"},
+     *     summary="Lister tous les comptes",
+     *     description="Liste de tous les comptes avec pagination et filtres",
+     *     operationId="listComptes",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="page",
+     *         in="query",
+     *         description="Numéro de la page",
+     *         required=false,
+     *         @OA\Schema(type="integer", minimum=1)
+     *     ),
+     *     @OA\Parameter(
+     *         name="limit",
+     *         in="query",
+     *         description="Nombre d'éléments par page",
+     *         required=false,
+     *         @OA\Schema(type="integer", minimum=1, maximum=100)
+     *     ),
+     *     @OA\Parameter(
+     *         name="type",
+     *         in="query",
+     *         description="Type de compte",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"courant", "epargne", "entreprise"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="statut",
+     *         in="query",
+     *         description="Statut du compte",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"actif", "bloque", "ferme"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         description="Recherche sur numéro de compte ou nom du titulaire",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="sort",
+     *         in="query",
+     *         description="Champ de tri",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"dateCreation", "solde", "titulaire"})
+     *     ),
+     *     @OA\Parameter(
+     *         name="order",
+     *         in="query",
+     *         description="Ordre de tri",
+     *         required=false,
+     *         @OA\Schema(type="string", enum={"asc", "desc"})
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Liste des comptes récupérée avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                      *             @OA\Items(
+     *                 type="object",
+     *                 @OA\Property(property="id", type="string", format="uuid"),
+     *                 @OA\Property(property="numeroCompte", type="string"),
+     *                 @OA\Property(property="titulaire", type="string"),
+     *                 @OA\Property(property="type", type="string"),
+     *                 @OA\Property(property="solde", type="number"),
+     *                 @OA\Property(property="devise", type="string"),
+     *                 @OA\Property(property="dateCreation", type="string", format="date-time"),
+     *                 @OA\Property(property="statut", type="string"),
+     *                 @OA\Property(
+     *                     property="metadata",
+     *                     type="object",
+     *                     @OA\Property(property="derniereModification", type="string", format="date-time"),
+     *                     @OA\Property(property="version", type="integer")
+     *                 )
+     *             )
+     *             ),
+     *             @OA\Property(
+     *                 property="pagination",
+     *                 type="object",
+     *                 @OA\Property(property="currentPage", type="integer", example=1),
+     *                 @OA\Property(property="totalPages", type="integer", example=3),
+     *                 @OA\Property(property="totalItems", type="integer", example=25),
+     *                 @OA\Property(property="itemsPerPage", type="integer", example=10),
+     *                 @OA\Property(property="hasNext", type="boolean", example=true),
+     *                 @OA\Property(property="hasPrevious", type="boolean", example=false)
+     *             ),
+     *             @OA\Property(
+     *                 property="links",
+     *                 type="object",
+     *                 @OA\Property(property="self", type="string", example="/api/v1/comptes?page=1&limit=10"),
+     *                 @OA\Property(property="next", type="string", example="/api/v1/comptes?page=2&limit=10"),
+     *                 @OA\Property(property="first", type="string", example="/api/v1/comptes?page=1&limit=10"),
+     *                 @OA\Property(property="last", type="string", example="/api/v1/comptes?page=3&limit=10")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Non autorisé")
+     * )
      */
     public function index(Request $request): JsonResponse
     {
@@ -37,7 +148,7 @@ class CompteController extends Controller
         $order = $validated['order'] ?? 'desc';
 
         // Construction de la requête
-        $query = Compte::with('client:id,nom,prenom,email');
+        $query = Compte::with('client:id,name,email');
 
         // Filtrage selon le rôle de l'utilisateur
         if (!$user->isAdmin()) {
@@ -46,7 +157,7 @@ class CompteController extends Controller
             if (!$client) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Client non trouvé'
+                    'message' => 'Nous n\'avons pas pu trouver votre profil client. Veuillez contacter notre service client.'
                 ], 404);
             }
             $query->where('client_id', $client->id);
@@ -65,8 +176,7 @@ class CompteController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('numero', 'like', "%{$search}%")
                   ->orWhereHas('client', function ($clientQuery) use ($search) {
-                      $clientQuery->where('nom', 'like', "%{$search}%")
-                                  ->orWhere('prenom', 'like', "%{$search}%")
+                      $clientQuery->where('name', 'like', "%{$search}%")
                                   ->orWhere('email', 'like', "%{$search}%");
                   });
             });
@@ -82,8 +192,7 @@ class CompteController extends Controller
                 break;
             case 'titulaire':
                 $query->join('clients', 'comptes.client_id', '=', 'clients.id')
-                      ->orderBy('clients.nom', $order)
-                      ->orderBy('clients.prenom', $order)
+                      ->orderBy('clients.name', $order)
                       ->select('comptes.*');
                 break;
         }
@@ -96,7 +205,7 @@ class CompteController extends Controller
             return [
                 'id' => $compte->id,
                 'numeroCompte' => $compte->numero,
-                'titulaire' => $compte->client->nom . ' ' . $compte->client->prenom,
+                'titulaire' => $compte->client->name,
                 'type' => $compte->type,
                 'solde' => (float) $compte->solde,
                 'devise' => $compte->devise,
@@ -214,7 +323,7 @@ class CompteController extends Controller
                 'success' => false,
                 'error' => [
                     'code' => 'COMPTE_NOT_FOUND',
-                    'message' => "Le compte avec l'ID spécifié n'existe pas.",
+                    'message' => "Nous n'avons pas pu trouver le compte demandé. Veuillez vérifier l'identifiant et réessayer.",
                     'details' => ['compteId' => $compteId],
                 ],
             ], 404);
@@ -229,7 +338,7 @@ class CompteController extends Controller
                     'success' => false,
                     'error' => [
                         'code' => 'COMPTE_NOT_FOUND',
-                        'message' => "Le compte avec l'ID spécifié n'existe pas.",
+                        'message' => "Nous n'avons pas pu trouver le compte demandé. Veuillez vérifier l'identifiant et réessayer.",
                         'details' => ['compteId' => $compteId],
                     ],
                 ], 404);
@@ -237,7 +346,7 @@ class CompteController extends Controller
         }
 
         $client = $compte->client;
-        $titulaire = $client->name ?? (isset($client->nom) ? trim(($client->nom ?? '') . ' ' . ($client->prenom ?? '')) : ($client->email ?? ''));
+        $titulaire = $client->name ?? $client->email;
 
         $data = [
             'id' => (string) $compte->id,
@@ -291,10 +400,10 @@ class CompteController extends Controller
             'client.phone' => ['required','unique:clients,phone','regex:/^\+221[0-9]{8,9}$/'],
             'client.address' => 'required|string|max:500',
         ], [
-            'client.email.unique' => 'L\'email est déjà utilisé',
-            'client.phone.unique' => 'Le téléphone est déjà utilisé',
-            'client.phone.regex' => 'Le téléphone doit être au format international sénégalais, ex: +221771234567',
-            'solde.min' => 'Le solde initial doit être supérieur ou égal à 10000',
+            'client.email.unique' => 'Cette adresse email est déjà utilisée par un autre client. Veuillez utiliser une adresse différente.',
+            'client.phone.unique' => 'Ce numéro de téléphone est déjà enregistré. Veuillez utiliser un numéro différent.',
+            'client.phone.regex' => 'Le numéro de téléphone doit être au format international sénégalais, par exemple : +221771234567',
+            'solde.min' => 'Le solde initial doit être d\'au moins 10 000 FCFA pour ouvrir un compte.',
         ]);
 
         $user = Auth::user();
@@ -372,7 +481,7 @@ class CompteController extends Controller
 
         $responseData = [
             'success' => true,
-            'message' => 'Compte créé avec succès',
+            'message' => 'Votre compte bancaire a été créé avec succès. Vous recevrez vos identifiants de connexion par email.',
             'data' => [
                 'id' => (string) $compte->id,
                 'numeroCompte' => $compte->numero,
@@ -419,19 +528,24 @@ class CompteController extends Controller
      *     @OA\Response(response=404, description="Compte non trouvé")
      * )
      */
-    public function delete(Request $request, string $compteId): JsonResponse
+    public function destroy(Request $request, string $compteId): JsonResponse
     {
         $user = Auth::user();
         $compte = \App\Models\Compte::find($compteId);
         if (!$compte) {
-            return response()->json(['success' => false, 'message' => 'Compte non trouvé'], 404);
+            return response()->json(['success' => false, 'message' => 'Le compte que vous souhaitez supprimer n\'existe pas ou a déjà été supprimé.'], 404);
         }
-        // Vérifie si l'utilisateur est admin ou propriétaire du compte
-        if ($user->role !== 'admin' && $compte->client_id !== $user->id) {
-            return response()->json(['success' => false, 'message' => 'Action non autorisée'], 403);
+
+        // Si l'utilisateur n'est pas admin, vérifier qu'il est le propriétaire du compte
+        if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
+            $client = Client::where('email', $user->email)->first();
+            if (!$client || $compte->client_id !== $client->id) {
+                return response()->json(['success' => false, 'message' => 'Vous n\'avez pas l\'autorisation de supprimer ce compte. Contactez un administrateur si nécessaire.'], 403);
+            }
         }
+
         $compte->delete();
-        return response()->json(['success' => true, 'message' => 'Compte supprimé avec succès']);
+        return response()->json(['success' => true, 'message' => 'Le compte a été supprimé avec succès de notre système.']);
     }
 
     /**
@@ -470,13 +584,13 @@ class CompteController extends Controller
     {
         $compte = \App\Models\Compte::find($compteId);
         if (!$compte) {
-            return response()->json(['success' => false, 'message' => 'Compte non trouvé'], 404);
+            return response()->json(['success' => false, 'message' => 'Le compte que vous souhaitez modifier n\'existe pas ou n\'est pas accessible.'], 404);
         }
         $data = $request->only(['titulaire', 'informationsClient']);
         $fields = array_filter($data, function($v) { return !is_null($v) && $v !== ''; });
         // Vérifie qu'au moins un champ est modifié
         if (empty($fields) || (isset($fields['informationsClient']) && empty(array_filter($fields['informationsClient'], function($v){return !is_null($v) && $v !== '';})))) {
-            return response()->json(['success' => false, 'message' => 'Au moins un champ doit être modifié'], 422);
+            return response()->json(['success' => false, 'message' => 'Veuillez fournir au moins une information à modifier pour ce compte.'], 422);
         }
         // Validation personnalisée
         $rules = [
@@ -520,7 +634,7 @@ class CompteController extends Controller
         $compte->save();
         return response()->json([
             'success' => true,
-            'message' => 'Compte mis à jour avec succès',
+            'message' => 'Les informations du compte ont été mises à jour avec succès.',
             'data' => $compte,
         ], 201);
     }

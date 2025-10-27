@@ -6,22 +6,53 @@ use Illuminate\Http\Request;
 
 /**
  * @OA\Info(
- *     title="Laravel API Documentation",
+ *     title="API Banque",
  *     version="1.0.0",
- *     description="API documentation for Laravel application with Passport authentication"
+ *     description="API pour la gestion des comptes bancaires"
  * )
- *
+ * 
  * @OA\Server(
  *     url=L5_SWAGGER_CONST_HOST,
  *     description="API Server"
  * )
- *
+ * 
  * @OA\SecurityScheme(
  *     securityScheme="bearerAuth",
  *     type="http",
  *     scheme="bearer",
+ *     bearerFormat="JWT"
+ * )
+ * 
+ * @OA\Schema(
+ *     schema="Compte",
+ *     type="object",
+ *     @OA\Property(property="id", type="string", format="uuid"),
+ *     @OA\Property(property="numeroCompte", type="string"),
+ *     @OA\Property(property="titulaire", type="string"),
+ *     @OA\Property(property="type", type="string", enum={"courant", "epargne", "entreprise"}),
+ *     @OA\Property(property="solde", type="number", format="float"),
+ *     @OA\Property(property="devise", type="string"),
+ *     @OA\Property(property="dateCreation", type="string", format="date-time"),
+ *     @OA\Property(property="statut", type="string", enum={"actif", "bloque", "ferme"}),
+ *     @OA\Property(
+ *         property="metadata",
+ *         type="object",
+ *         @OA\Property(property="derniereModification", type="string", format="date-time"),
+ *         @OA\Property(property="version", type="integer")
+ *     )
+ * )
  *     bearerFormat="JWT",
- *     description="Enter token in format: Bearer {token}"
+ *     description="Authentification avec JWT Bearer token"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Authentification",
+ *     description="Endpoints d'authentification"
+ * )
+ * 
+ * @OA\Tag(
+ *     name="Comptes",
+ *     description="Endpoints de gestion des comptes bancaires"
  * )
  *
  * @OA\PathItem(
@@ -188,6 +219,78 @@ use Illuminate\Http\Request;
  *             )
  *         )
  *     )
+ * )
+ */
+/**
+ * @OA\PathItem(
+ *     path="/api/v1/auth/login",
+ *     @OA\Post(
+ *         tags={"Authentification"},
+ *         summary="Connexion utilisateur",
+ *         description="Connexion d'un utilisateur. Utilisez les identifiants suivants pour les tests : email='admin@bankapi.com', password='password'",
+ *         @OA\RequestBody(
+ *             required=true,
+ *             @OA\JsonContent(
+ *                 @OA\Property(property="login", type="string", example="admin@bankapi.com"),
+ *                 @OA\Property(property="password", type="string", example="password")
+ *             )
+ *         ),
+ *         @OA\Response(response=200, description="Login réussi"),
+ *         @OA\Response(response=401, description="Identifiants invalides")
+ *     )
+ * )
+ * @OA\PathItem(
+ *     path="/api/v1/auth/refresh",
+ *     @OA\Post(
+ *         tags={"Authentification"},
+ *         summary="Refresh token",
+ *         @OA\RequestBody(
+ *             required=true,
+ *             @OA\JsonContent(
+ *                 @OA\Property(property="refresh_token", type="string")
+ *             )
+ *         ),
+ *         @OA\Response(response=200, description="Token rafraîchi"),
+ *         @OA\Response(response=401, description="Token invalide")
+ *     )
+ * )
+ * @OA\PathItem(
+ *     path="/api/v1/auth/logout",
+ *     @OA\Post(
+ *         tags={"Authentification"},
+ *         summary="Logout",
+ *         security={{"bearerAuth":{}}},
+ *         @OA\Response(response=200, description="Déconnexion réussie"),
+ *         @OA\Response(response=401, description="Non authentifié")
+ *     )
+ * )
+ */
+/**
+ * @OA\Schema(
+ *     schema="Compte",
+ *     type="object",
+ *     @OA\Property(property="id", type="string", format="uuid"),
+ *     @OA\Property(property="numeroCompte", type="string"),
+ *     @OA\Property(property="titulaire", type="string"),
+ *     @OA\Property(property="type", type="string", enum={"courant", "epargne", "entreprise"}),
+ *     @OA\Property(property="solde", type="number", format="float"),
+ *     @OA\Property(property="devise", type="string"),
+ *     @OA\Property(property="dateCreation", type="string", format="date"),
+ *     @OA\Property(property="statut", type="string", enum={"actif", "bloque", "ferme"}),
+ *     @OA\Property(
+ *         property="metadata",
+ *         type="object",
+ *         @OA\Property(property="derniereModification", type="string", format="date-time"),
+ *         @OA\Property(property="version", type="integer")
+ *     )
+ * )
+ */
+
+/**
+ * @OA\Info(
+ *     version="1.0.0",
+ *     title="API Banque",
+ *     description="API pour la gestion des comptes bancaires"
  * )
  */
 class SwaggerController extends Controller

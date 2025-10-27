@@ -2,48 +2,55 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\CompteController;
-use App\Http\Controllers\ClientController;
-use App\Http\Controllers\TransactionController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\WelcomeController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
+// Debug route (enabled only in debug mode) to create a test client and a compte
+if (config('app.debug')) {
+    Route::get('/debug/create-test-client', function () {
+        $client = \App\Models\Client::firstOrCreate([
+            'email' => 'test+bot@bankapi.com'
+        ], [
+            'name' => 'Test Bot',
+            'phone' => '+221771234567',
+            'address' => '123 Test Street',
+            'is_active' => true
+        ]);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+        \App\Models\Compte::firstOrCreate([
+            'client_id' => $client->id,
+        ], [
+            'numero' => 'C'.strtoupper(\Illuminate\Support\Str::random(8)),
+            'type' => 'courant',
+            'solde' => 100000,
+            'devise' => 'XOF',
+            'is_active' => true,
+            'date_ouverture' => now(),
+        ]);
 
+        return response()->json(['success' => true, 'message' => 'Client de test créé/présent']);
+    });
+}
+
+// Public routes
 Route::get('/welcome', [WelcomeController::class, 'welcome']);
 
-// Routes pour les comptes - nécessite authentification
-Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/v1/comptes', [CompteController::class, 'index']);
-    Route::get('/v1/comptes/{compte}', [CompteController::class, 'show']);
-    Route::post('/v1/comptes', [CompteController::class, 'store']);
-    Route::middleware('auth:api')->patch('/api/v1/comptes/{compteId}', [App\Http\Controllers\CompteController::class, 'update']);
-    Route::middleware('auth:api')->delete('/api/v1/comptes/{compteId}', [App\Http\Controllers\CompteController::class, 'delete']);
-    // RESTful resources for v1
-    Route::apiResource('/v1/clients', ClientController::class);
-    Route::apiResource('/v1/transactions', TransactionController::class);
-    Route::apiResource('/v1/users', UserController::class);
+// Public auth routes
+Route::prefix('v1')->group(function () {
+    Route::post('/auth/login', [AuthController::class, 'login']);
+    Route::post('/auth/refresh', [AuthController::class, 'refresh']);
 });
 
-// Authentication routes (token issuance using Passport OAuth2 password grant)
-Route::prefix('v1')->group(function () {
-    Route::post('/auth/login', [\App\Http\Controllers\AuthController::class, 'login'])->middleware(['throttle:ip-minute']);
-    Route::post('/auth/register', [\App\Http\Controllers\AuthController::class, 'register'])->middleware(['throttle:ip-minute']);
-    Route::post('/auth/refresh', [\App\Http\Controllers\AuthController::class, 'refresh'])->middleware(['throttle:ip-minute']);
-    Route::middleware('auth:api')->post('/api/v1/auth/logout', [App\Http\Controllers\AuthController::class, 'logout']);
-    Route::get('/auth/authentification', [\App\Http\Controllers\AuthController::class, 'authentification'])->middleware(['auth:api','throttle:user-hour']);
-    Route::middleware('auth:api')->delete('/v1/auth/delete/{id}', [App\Http\Controllers\AuthController::class, 'deleteAccount']);
+// Protected routes (Passport)
+Route::middleware('auth:api')->prefix('v1')->group(function () {
+    Route::post('/auth/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+
+    // Comptes
+    Route::get('/comptes', [CompteController::class, 'index']);
+    Route::post('/comptes', [CompteController::class, 'store']);
+    Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
+    Route::patch('/comptes/{compteId}', [CompteController::class, 'update']);
+    Route::delete('/comptes/{compteId}', [CompteController::class, 'destroy']);
 });

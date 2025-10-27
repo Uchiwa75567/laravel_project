@@ -12,7 +12,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // \App\Models\User::factory(10)->create();
+            \App\Models\User::create([
+                'name' => 'Admin User',
+                'email' => 'admin@bankapi.com',
+                'password' => bcrypt('Password!23'),
+                'is_active' => true
+            ]);
+        
+            \App\Models\User::create([
+                'name' => 'Test Bot',
+                'email' => 'test+bot@bankapi.com',
+                'password' => bcrypt('Password123'),
+                'is_active' => true
+            ]);
 
         // \App\Models\User::factory()->create([
         //     'name' => 'Test User',
