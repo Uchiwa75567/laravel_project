@@ -235,7 +235,17 @@ use Illuminate\Http\Request;
  *                 @OA\Property(property="password", type="string", example="password")
  *             )
  *         ),
- *         @OA\Response(response=200, description="Login réussi"),
+ *         @OA\Response(
+ *             response=200,
+ *             description="Login réussi",
+ *             @OA\JsonContent(
+ *                 type="object",
+ *                 @OA\Property(property="token_type", type="string", example="Bearer"),
+ *                 @OA\Property(property="expires_in", type="integer", example=31536000),
+ *                 @OA\Property(property="access_token", type="string", example="eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9..."),
+ *                 @OA\Property(property="refresh_token", type="string", example="def50200...")
+ *             )
+ *         ),
  *         @OA\Response(response=401, description="Identifiants invalides")
  *     )
  * )
