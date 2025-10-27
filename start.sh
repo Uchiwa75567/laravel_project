@@ -41,6 +41,10 @@ if ! php artisan tinker --execute="echo \App\Models\Passport\Client::where('pass
     php artisan passport:client --password --name="Laravel Password Grant Client" --provider=users
 fi
 
+# Install Faker if not available
+echo "Installing Faker..."
+composer require --dev fakerphp/faker --no-interaction
+
 # Run database seeders
 echo "Running database seeders..."
 php artisan db:seed --force
