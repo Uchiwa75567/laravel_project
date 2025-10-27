@@ -30,7 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/v1/comptes', [CompteController::class, 'index']);
     Route::get('/v1/comptes/{compte}', [CompteController::class, 'show']);
     Route::post('/v1/comptes', [CompteController::class, 'store']);
-    Route::patch('/v1/comptes/{compte}', [CompteController::class, 'update']);
+    Route::middleware('auth:api')->patch('/api/v1/comptes/{compteId}', [App\Http\Controllers\CompteController::class, 'update']);
     Route::middleware('auth:api')->delete('/api/v1/comptes/{compteId}', [App\Http\Controllers\CompteController::class, 'delete']);
     // RESTful resources for v1
     Route::apiResource('/v1/clients', ClientController::class);

@@ -396,146 +396,9 @@ class CompteController extends Controller
      * Update client information related to a compte (partial update).
      * All fields optional but at least one must be provided.
      */
-    public function update(Request $request, string $compteId): JsonResponse
-    {
-        $user = Auth::user();
+        // Duplicate update() method removed
 
-        // Quick presence check: at least one of the accepted fields must be present
-        $hasTitulaire = $request->filled('titulaire');
-        $info = $request->input('informationsClient', []);
-        $hasInfoFields = is_array($info) && (array_key_exists('telephone', $info) || array_key_exists('email', $info) || array_key_exists('password', $info));
-
-        if (!$hasTitulaire && !$hasInfoFields) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'NO_FIELDS_PROVIDED',
-                    'message' => 'Au moins un champ doit être fourni pour la mise à jour.',
-                ],
-            ], 422);
-        }
-
-        // Validate formats
-        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
-            'titulaire' => 'sometimes|string|max:255',
-            'informationsClient.telephone' => ['sometimes','regex:/^\+221[0-9]{8,9}$/'],
-            'informationsClient.email' => 'sometimes|email',
-            'informationsClient.password' => ['sometimes','string','regex:/^(?=.{10,}$)(?=(.*[a-z]){2,})(?=(.*[^A-Za-z0-9]){2,})[A-Z].*/'],
-        ], [
-            'informationsClient.telephone.regex' => 'Le téléphone doit être au format international sénégalais, ex: +221771234567',
-            'informationsClient.password.regex' => 'Le mot de passe doit contenir au moins 10 caractères, commencer par une lettre majuscule, contenir au moins 2 lettres minuscules et 2 caractères spéciaux',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-
-        $compte = Compte::with('client')->find($compteId);
-        if (!$compte) {
-            return response()->json([
-                'success' => false,
-                'error' => [
-                    'code' => 'COMPTE_NOT_FOUND',
-                    'message' => "Le compte avec l'ID spécifié n'existe pas.",
-                    'details' => ['compteId' => $compteId],
-                ],
-            ], 404);
-        }
-
-        // Authorization: non-admins can only update their own comptes
-        if (!$user->isAdmin()) {
-            $clientAuth = Client::where('email', $user->email)->first();
-            if (!$clientAuth || $compte->client_id !== $clientAuth->id) {
-                return response()->json([
-                    'success' => false,
-                    'error' => [
-                        'code' => 'COMPTE_NOT_FOUND',
-                        'message' => "Le compte avec l'ID spécifié n'existe pas.",
-                        'details' => ['compteId' => $compteId],
-                    ],
-                ], 404);
-            }
-        }
-
-        $client = $compte->client;
-
-        // Uniqueness checks
-        if (isset($info['telephone']) && $info['telephone'] !== $client->phone) {
-            if (Client::where('phone', $info['telephone'])->where('id', '<>', $client->id)->exists()) {
-                return response()->json(['success' => false, 'error' => ['code' => 'PHONE_TAKEN', 'message' => 'Le téléphone est déjà utilisé']], 422);
-            }
-        }
-
-        if (isset($info['email']) && $info['email'] !== $client->email) {
-            if (Client::where('email', $info['email'])->where('id', '<>', $client->id)->exists()) {
-                return response()->json(['success' => false, 'error' => ['code' => 'EMAIL_TAKEN', 'message' => 'L\'email est déjà utilisé']], 422);
-            }
-            // Also ensure no other user has that email
-            $existingUser = \App\Models\User::where('email', $info['email'])->first();
-            if ($existingUser && $existingUser->email !== $client->email) {
-                return response()->json(['success' => false, 'error' => ['code' => 'EMAIL_TAKEN', 'message' => 'L\'email est déjà utilisé par un compte utilisateur']], 422);
-            }
-        }
-
-        // Apply updates
-        $oldEmail = $client->email;
-        $userModel = \App\Models\User::where('email', $oldEmail)->first();
-
-        if ($hasTitulaire) {
-            $client->name = $request->input('titulaire');
-        }
-
-        if (isset($info['telephone'])) {
-            $client->phone = $info['telephone'];
-        }
-
-        if (isset($info['email'])) {
-            $client->email = $info['email'];
-            // Update associated user email if present
-            if ($userModel) {
-                $userModel->email = $info['email'];
-                $userModel->save();
-            }
-        }
-
-        if (isset($info['password'])) {
-            $newPassword = $info['password'];
-            if ($userModel) {
-                $userModel->password = bcrypt($newPassword);
-                $userModel->save();
-            } else {
-                // create a user for this client if none exists
-                \App\Models\User::create([
-                    'name' => $client->name ?? ($client->email ?? 'client'),
-                    'email' => $client->email,
-                    'password' => bcrypt($newPassword),
-                    'is_active' => true,
-                ]);
-            }
-        }
-
-        $client->save();
-
-        // Prepare response data (similar to show)
-        $titulaire = $client->name ?? (isset($client->nom) ? trim(($client->nom ?? '') . ' ' . ($client->prenom ?? '')) : ($client->email ?? ''));
-
-        $data = [
-            'id' => (string) $compte->id,
-            'numeroCompte' => $compte->numero,
-            'titulaire' => $titulaire,
-            'type' => $compte->type,
-            'solde' => (float) $compte->solde,
-            'devise' => $compte->devise,
-            'dateCreation' => $compte->date_ouverture?->toISOString() ?? ($compte->date_ouverture?->toDateTimeString() ?? null),
-            'statut' => $compte->is_active ? 'actif' : 'bloque',
-            'metadata' => [
-                'derniereModification' => $compte->updated_at?->toISOString() ?? ($compte->updated_at?->toDateTimeString() ?? null),
-                'version' => 1,
-            ],
-        ];
-
-        return response()->json(['success' => true, 'message' => 'Compte mis à jour avec succès', 'data' => $data], 201);
-    }
+// Orphaned/duplicate update logic removed
 
     /**
      * @OA\Delete(
@@ -569,5 +432,96 @@ class CompteController extends Controller
         }
         $compte->delete();
         return response()->json(['success' => true, 'message' => 'Compte supprimé avec succès']);
+    }
+
+    /**
+     * @OA\Patch(
+     *     path="/api/v1/comptes/{compteId}",
+     *     tags={"Comptes"},
+     *     summary="Modifier les informations d'un compte",
+     *     description="Tous les champs sont optionnels, mais au moins un doit être modifié. Téléphone unique et valide, email unique, mot de passe sécurisé.",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="compteId",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte à modifier",
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\MediaType(
+     *             mediaType="application/json",
+     *             @OA\Schema(
+     *                 type="object",
+     *                 @OA\Property(property="titulaire", type="string"),
+     *                 @OA\Property(property="informationsClient", type="object",
+     *                     @OA\Property(property="telephone", type="string"),
+     *                     @OA\Property(property="email", type="string"),
+     *                     @OA\Property(property="password", type="string", format="password")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=201, description="Compte mis à jour avec succès")
+     * )
+     */
+    public function update(Request $request, string $compteId): JsonResponse
+    {
+        $compte = \App\Models\Compte::find($compteId);
+        if (!$compte) {
+            return response()->json(['success' => false, 'message' => 'Compte non trouvé'], 404);
+        }
+        $data = $request->only(['titulaire', 'informationsClient']);
+        $fields = array_filter($data, function($v) { return !is_null($v) && $v !== ''; });
+        // Vérifie qu'au moins un champ est modifié
+        if (empty($fields) || (isset($fields['informationsClient']) && empty(array_filter($fields['informationsClient'], function($v){return !is_null($v) && $v !== '';})))) {
+            return response()->json(['success' => false, 'message' => 'Au moins un champ doit être modifié'], 422);
+        }
+        // Validation personnalisée
+        $rules = [
+            'titulaire' => 'nullable|string',
+            'informationsClient.telephone' => [
+                'nullable',
+                'string',
+                'regex:/^(\+221|00221)?7[05678][0-9]{7}$/',
+                'unique:clients,phone',
+            ],
+            'informationsClient.email' => 'nullable|email|unique:clients,email',
+            'informationsClient.password' => [
+                'nullable',
+                'string',
+                'min:10',
+                'regex:/^[A-Z][a-z]{2,}.*[!@#$%^&*()_+=\-{}\[\]:;"\'<>,.?\/]{2,}/',
+            ],
+        ];
+        $validated = $request->validate($rules);
+        // Mise à jour des champs
+        if (isset($validated['titulaire'])) {
+            $compte->titulaire = $validated['titulaire'];
+        }
+        if (isset($validated['informationsClient'])) {
+            $client = $compte->client;
+            if (isset($validated['informationsClient']['telephone'])) {
+                $client->phone = $validated['informationsClient']['telephone'];
+            }
+            if (isset($validated['informationsClient']['email'])) {
+                $client->email = $validated['informationsClient']['email'];
+            }
+            if (isset($validated['informationsClient']['password']) && $validated['informationsClient']['password'] !== '') {
+                $client->password = bcrypt($validated['informationsClient']['password']);
+            }
+            $client->save();
+        }
+        $compte->metadata = [
+            'derniereModification' => now()->toIso8601String(),
+            'version' => ($compte->metadata['version'] ?? 0) + 1,
+        ];
+        $compte->save();
+        return response()->json([
+            'success' => true,
+            'message' => 'Compte mis à jour avec succès',
+            'data' => $compte,
+        ], 201);
     }
 }
