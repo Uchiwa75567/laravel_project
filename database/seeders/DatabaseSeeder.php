@@ -34,11 +34,14 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call([
-            UserSeeder::class,
-            ClientSeeder::class,
-            CompteSeeder::class,
-            TransactionSeeder::class,
-        ]);
+        // Only run seeders in local/development environment
+        if (app()->environment(['local', 'development'])) {
+            $this->call([
+                UserSeeder::class,
+                ClientSeeder::class,
+                CompteSeeder::class,
+                TransactionSeeder::class,
+            ]);
+        }
     }
 }
