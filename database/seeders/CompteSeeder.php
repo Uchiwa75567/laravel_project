@@ -18,12 +18,9 @@ class CompteSeeder extends Seeder
             $clients = \App\Models\Client::factory(10)->create();
         }
 
-        // Create comptes for each client (1-3 comptes per client)
+        // Create comptes for each client (1 compte per client for production)
         foreach ($clients as $client) {
-            $numComptes = rand(1, 3);
-            for ($i = 0; $i < $numComptes; $i++) {
-                \App\Models\Compte::factory()->forClient($client)->create();
-            }
+            \App\Models\Compte::factory()->forClient($client)->create();
         }
 
         // Create some specific test comptes

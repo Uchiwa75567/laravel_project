@@ -118,8 +118,8 @@ class UserSeeder extends Seeder
             ],
         ]);
 
-        // Create additional random users
-        \App\Models\User::factory(15)->create();
+        // Create additional random users (reduced for production)
+        \App\Models\User::factory(5)->create();
 
         // Create or update some users with specific characteristics
         \App\Models\User::updateOrCreate([
