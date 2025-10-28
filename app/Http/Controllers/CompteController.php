@@ -7,6 +7,7 @@ use App\Models\Client;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\BlockCompteRequest;
 use OpenApi\Annotations as OA;
 
 /**
@@ -44,7 +45,7 @@ class CompteController extends Controller
      *         in="query",
      *         description="Type de compte",
      *         required=false,
-     *         @OA\Schema(type="string", enum={"courant", "epargne", "entreprise"})
+     *         @OA\Schema(type="string", enum={"epargne", "cheque"})
      *     ),
      *     @OA\Parameter(
      *         name="statut",
@@ -132,7 +133,7 @@ class CompteController extends Controller
         $validated = $request->validate([
             'page' => 'integer|min:1',
             'limit' => 'integer|min:1|max:100',
-            'type' => 'string|in:courant,epargne,entreprise',
+            'type' => 'string|in:epargne,cheque',
             'statut' => 'string|in:actif,bloque,ferme',
             'search' => 'string|nullable',
             'sort' => 'string|in:dateCreation,solde,titulaire',
@@ -169,7 +170,31 @@ class CompteController extends Controller
         }
 
         if ($statut) {
-            $query->where('is_active', $statut === 'actif');
+            switch ($statut) {
+                case 'actif':
+                    $query->where('is_active', true)
+                          ->where('is_archived', false)
+                          ->where(function ($q) {
+                              $q->whereNull('date_debut_blocage')
+                                ->orWhere('date_debut_blocage', '>', now())
+                                ->orWhere(function ($subQ) {
+                                    $subQ->whereNotNull('date_fin_blocage')
+                                          ->where('date_fin_blocage', '<', now());
+                                });
+                          });
+                    break;
+                case 'bloque':
+                    $query->whereNotNull('date_debut_blocage')
+                          ->where('date_debut_blocage', '<=', now())
+                          ->where(function ($q) {
+                              $q->whereNull('date_fin_blocage')
+                                ->orWhere('date_fin_blocage', '>', now());
+                          });
+                    break;
+                case 'ferme':
+                    $query->where('is_archived', true);
+                    break;
+            }
         }
 
         if ($search) {
@@ -202,6 +227,13 @@ class CompteController extends Controller
 
         // Transformer les données
         $data = $comptes->getCollection()->map(function ($compte) {
+            $statut = 'actif';
+            if ($compte->is_archived) {
+                $statut = 'ferme';
+            } elseif ($compte->isBlocked()) {
+                $statut = 'bloque';
+            }
+
             return [
                 'id' => $compte->id,
                 'numeroCompte' => $compte->numero,
@@ -210,7 +242,9 @@ class CompteController extends Controller
                 'solde' => (float) $compte->solde,
                 'devise' => $compte->devise,
                 'dateCreation' => $compte->date_ouverture->toDateString(),
-                'statut' => $compte->is_active ? 'actif' : 'bloque',
+                'statut' => $statut,
+                'motifBlocage' => $compte->motif_blocage ?? null,
+                'dateArchivage' => $compte->archived_at?->toISOString(),
                 'metadata' => [
                     'derniereModification' => $compte->updated_at->toISOString(),
                 ],
@@ -348,6 +382,13 @@ class CompteController extends Controller
         $client = $compte->client;
         $titulaire = $client->name ?? $client->email;
 
+        $statut = 'actif';
+        if ($compte->is_archived) {
+            $statut = 'ferme';
+        } elseif ($compte->isBlocked()) {
+            $statut = 'bloque';
+        }
+
         $data = [
             'id' => (string) $compte->id,
             'numeroCompte' => $compte->numero,
@@ -356,8 +397,9 @@ class CompteController extends Controller
             'solde' => (float) $compte->solde,
             'devise' => $compte->devise,
             'dateCreation' => $compte->date_ouverture?->toISOString() ?? ($compte->date_ouverture?->toDateTimeString() ?? null),
-            'statut' => $compte->is_active ? 'actif' : 'bloque',
+            'statut' => $statut,
             'motifBlocage' => $compte->motif_blocage ?? null,
+            'dateArchivage' => $compte->archived_at?->toISOString(),
             'metadata' => [
                 'derniereModification' => $compte->updated_at?->toISOString() ?? ($compte->updated_at?->toDateTimeString() ?? null),
                 'version' => 1,
@@ -373,111 +415,189 @@ class CompteController extends Controller
      * @OA\Post(
      *     path="/api/v1/comptes",
      *     tags={"Comptes"},
-     *     summary="Créer un compte",
+     *     summary="Créer un compte bancaire",
+     *     description="Crée un nouveau compte bancaire pour un client existant ou nouveau. Un email de notification est automatiquement envoyé au client.",
      *     security={{"bearerAuth":{}}},
-     *     @OA\RequestBody(
-     *         required=true,
+     * @OA\RequestBody(
+      *         required=true,
+      *         @OA\JsonContent(
+      *             type="object",
+      *             required={"type", "soldeInitial", "devise", "client"},
+      *             @OA\Property(property="type", type="string", enum={"epargne", "cheque"}, example="epargne", description="Type de compte"),
+      *             @OA\Property(property="soldeInitial", type="number", format="float", minimum=10000, example=10000, description="Solde initial minimum 10 000"),
+      *             @OA\Property(property="devise", type="string", example="CFA", description="Devise du compte"),
+      *             @OA\Property(property="solde", type="number", format="float", minimum=10000, example=10000, description="Solde initial (alias pour soldeInitial)"),
+      *             @OA\Property(
+      *                 property="client",
+      *                 type="object",
+      *                 nullable=true,
+      *                 required={"titulaire", "nci", "email", "telephone", "adresse"},
+      *                 @OA\Property(property="titulaire", type="string", example="bachir ndiaye", description="Nom du titulaire"),
+      *                 @OA\Property(property="nci", type="string", example="1937200100168", description="Numéro de carte d'identité"),
+      *                 @OA\Property(property="email", type="string", format="email", example="bachir@diame.com", description="Adresse email"),
+      *                 @OA\Property(property="telephone", type="string", example="+221775626363", description="Numéro de téléphone (+221...)"),
+      *                 @OA\Property(property="adresse", type="string", example="Dakar, Sénégal", description="Adresse complète")
+      *             )
+      *         )
+      *     ),
+     *     @OA\Response(
+     *         response=201,
+     *         description="Compte créé avec succès",
      *         @OA\JsonContent(
      *             type="object",
-     *             @OA\Property(property="type", type="string"),
-     *             @OA\Property(property="solde", type="number", format="float"),
-     *             @OA\Property(property="devise", type="string"),
-     *             @OA\Property(property="client", type="object")
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Votre compte bancaire a été créé avec succès. Vous recevrez vos identifiants de connexion par email."),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="string", format="uuid"),
+     *                 @OA\Property(property="numeroCompte", type="string"),
+     *                 @OA\Property(property="titulaire", type="string"),
+     *                 @OA\Property(property="type", type="string"),
+     *                 @OA\Property(property="solde", type="number"),
+     *                 @OA\Property(property="devise", type="string"),
+     *                 @OA\Property(property="dateCreation", type="string", format="date-time"),
+     *                 @OA\Property(property="statut", type="string", example="actif")
+     *             )
      *         )
      *     ),
-     *     @OA\Response(response=201, description="Compte créé"),
-     *     @OA\Response(response=400, description="Bad Request")
+     *     @OA\Response(response=400, description="Données invalides"),
+     *     @OA\Response(response=404, description="Client non trouvé"),
+     *     @OA\Response(response=422, description="Erreur de validation")
      * )
      */
     public function store(Request $request): JsonResponse
     {
         $payload = $request->validate([
-            'type' => 'required|string|in:courant,epargne,joint',
-            'solde' => 'required|numeric|min:10000',
+            'type' => 'required|string|in:epargne,cheque',
+            'solde' => 'nullable|numeric|min:10000',
+            'soldeInitial' => 'required_without:solde|numeric|min:10000',
             'devise' => 'required|string|size:3',
-            'client.name' => 'required|string|max:255',
-            'client.email' => 'required|email|unique:clients,email',
-            'client.phone' => ['required','unique:clients,phone','regex:/^\+221[0-9]{8,9}$/'],
-            'client.address' => 'required|string|max:500',
+            'client_id' => 'nullable|uuid|exists:clients,id',
+            'client.id' => 'nullable|string',
+            'client.titulaire' => 'required_without:client_id|string|max:255',
+            'client.nci' => 'required_without:client_id|string|unique:clients,nci',
+            'client.email' => 'required_without:client_id|email|unique:clients,email',
+            'client.telephone' => ['required_without:client_id','unique:clients,phone','regex:/^\+221[0-9]{8,9}$/'],
+            'client.adresse' => 'required_without:client_id|string|max:500',
         ], [
-            'client.email.unique' => 'Cette adresse email est déjà utilisée par un autre client. Veuillez utiliser une adresse différente.',
-            'client.phone.unique' => 'Ce numéro de téléphone est déjà enregistré. Veuillez utiliser un numéro différent.',
-            'client.phone.regex' => 'Le numéro de téléphone doit être au format international sénégalais, par exemple : +221771234567',
+            'type.in' => 'Le type de compte doit être : epargne ou cheque.',
+            'client.nci.unique' => 'Ce numéro de carte d\'identité est déjà enregistré.',
+            'client.email.unique' => 'Cette adresse email est déjà utilisée par un autre client.',
+            'client.telephone.unique' => 'Ce numéro de téléphone est déjà enregistré.',
+            'client.telephone.regex' => 'Le numéro de téléphone doit être au format international sénégalais, par exemple : +221771234567',
             'solde.min' => 'Le solde initial doit être d\'au moins 10 000 FCFA pour ouvrir un compte.',
+            'soldeInitial.min' => 'Le solde initial doit être d\'au moins 10 000 FCFA pour ouvrir un compte.',
         ]);
 
         $user = Auth::user();
 
         // Check or create client
-        $clientData = $payload['client'];
-        $client = \App\Models\Client::where('email', $clientData['email'])->orWhere('phone', $clientData['phone'])->first();
-        $generatedPassword = null;
-        $generatedCode = null;
-        if (!$client) {
-            // generate password and code
-            $generatedPassword = \Illuminate\Support\Str::random(10);
-            $generatedCode = rand(100000, 999999);
+        $client = null;
 
-            // create an associated User so the client can authenticate
-            $userModel = \App\Models\User::where('email', $clientData['email'])->first();
-            if (!$userModel) {
-                $userModel = \App\Models\User::create([
-                    'name' => $clientData['name'],
-                    'email' => $clientData['email'],
-                    'password' => bcrypt($generatedPassword),
-                    'is_active' => true,
-                ]);
+        // If client_id is provided, use it directly
+        if (isset($payload['client_id']) && !empty($payload['client_id'])) {
+            $client = \App\Models\Client::find($payload['client_id']);
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client avec l\'ID spécifié non trouvé.'
+                ], 404);
             }
-
-            $client = \App\Models\Client::create([
-                'name' => $clientData['name'],
-                'email' => $clientData['email'],
-                'phone' => $clientData['phone'],
-                'address' => $clientData['address'] ?? null,
-                'is_active' => true,
-                'last_order_at' => null,
-            ]);
-
-            // Send authentication email with password (simple Mailable)
-            try {
-                \Illuminate\Support\Facades\Mail::to($client->email)->send(new \App\Mail\ClientCredentialsMail($generatedPassword));
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Unable to send client credentials email: ' . $e->getMessage());
+        } elseif (isset($payload['client']['id']) && !empty($payload['client']['id'])) {
+            $client = \App\Models\Client::find($payload['client']['id']);
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Client avec l\'ID spécifié non trouvé.'
+                ], 404);
             }
+        } elseif (isset($payload['client'])) {
+            $clientData = $payload['client'];
+            // Check if client exists by email, phone, or NCI
+            $client = \App\Models\Client::where('email', $clientData['email'])
+                ->orWhere('phone', $clientData['telephone'])
+                ->orWhere('nci', $clientData['nci'])
+                ->first();
 
-            // Send SMS with code via Twilio if configured, otherwise log it
-            try {
-                $twilioSid = config('services.twilio.sid');
-                $twilioToken = config('services.twilio.token');
-                $twilioFrom = config('services.twilio.from');
+            $generatedPassword = null;
+            $generatedCode = null;
+            if (!$client) {
+                // generate password and code
+                $generatedPassword = \Illuminate\Support\Str::random(10);
+                $generatedCode = rand(100000, 999999);
 
-                if ($twilioSid && $twilioToken && $twilioFrom) {
-                    $twilio = new \Twilio\Rest\Client($twilioSid, $twilioToken);
-                    $twilio->messages->create($client->phone, [
-                        'from' => $twilioFrom,
-                        'body' => "Votre code de vérification: {$generatedCode}",
+                // create an associated User so the client can authenticate
+                $userModel = \App\Models\User::where('email', $clientData['email'])->first();
+                if (!$userModel) {
+                    $userModel = \App\Models\User::create([
+                        'name' => $clientData['titulaire'],
+                        'email' => $clientData['email'],
+                        'password' => bcrypt($generatedPassword),
+                        'is_active' => true,
                     ]);
-                } else {
-                    \Illuminate\Support\Facades\Log::info("SMS to {$client->phone}: your verification code is {$generatedCode}");
                 }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Unable to send SMS: ' . $e->getMessage());
+
+                $client = \App\Models\Client::create([
+                    'name' => $clientData['titulaire'],
+                    'nci' => $clientData['nci'],
+                    'email' => $clientData['email'],
+                    'phone' => $clientData['telephone'],
+                    'address' => $clientData['adresse'],
+                    'is_active' => true,
+                    'last_order_at' => null,
+                ]);
+
+                // Send authentication email with password (simple Mailable)
+                try {
+                    \Illuminate\Support\Facades\Mail::to($client->email)->send(new \App\Mail\ClientCredentialsMail($generatedPassword));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Unable to send client credentials email: ' . $e->getMessage());
+                }
+
+                // Send SMS with code via Twilio if configured, otherwise log it
+                try {
+                    $twilioSid = config('services.twilio.sid');
+                    $twilioToken = config('services.twilio.token');
+                    $twilioFrom = config('services.twilio.from');
+
+                    if ($twilioSid && $twilioToken && $twilioFrom) {
+                        $twilio = new \Twilio\Rest\Client($twilioSid, $twilioToken);
+                        $twilio->messages->create($client->phone, [
+                            'from' => $twilioFrom,
+                            'body' => "Votre code de vérification: {$generatedCode}",
+                        ]);
+                    } else {
+                        \Illuminate\Support\Facades\Log::info("SMS to {$client->phone}: your verification code is {$generatedCode}");
+                    }
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Unable to send SMS: ' . $e->getMessage());
+                }
             }
         }
 
         // Create compte
         $numero = method_exists(\App\Models\Compte::class, 'generateNumero') ? \App\Models\Compte::generateNumero() : \Illuminate\Support\Str::upper('C' . \Illuminate\Support\Str::random(8));
 
+        $solde = $payload['soldeInitial'] ?? $payload['solde'] ?? 0;
+
         $compte = \App\Models\Compte::create([
             'numero' => $numero,
             'type' => $payload['type'],
-            'solde' => $payload['solde'],
+            'solde' => $solde,
             'devise' => $payload['devise'],
             'is_active' => true,
             'client_id' => $client->id,
             'date_ouverture' => now(),
             'last_transaction_at' => null,
         ]);
+
+        // Send email notification to client about account creation
+        try {
+            \Illuminate\Support\Facades\Mail::to($client->email)->send(new \App\Mail\AccountCreatedMail($compte, $generatedPassword ?? null));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Unable to send account creation email: ' . $e->getMessage());
+        }
 
         $responseData = [
             'success' => true,
@@ -498,6 +618,16 @@ class CompteController extends Controller
             ],
         ];
 
+        // Log the account creation
+        \Illuminate\Support\Facades\Log::info('Compte created', [
+            'compte_id' => $compte->id,
+            'numero' => $compte->numero,
+            'type' => $compte->type,
+            'client_id' => $client->id,
+            'solde' => $compte->solde,
+            'created_by' => $user->id,
+        ]);
+
         return response()->json($responseData, 201);
     }
 
@@ -513,17 +643,17 @@ class CompteController extends Controller
      * @OA\Delete(
      *     path="/api/v1/comptes/{compteId}",
      *     tags={"Comptes"},
-     *     summary="Supprimer un compte par son id",
-     *     description="Supprime le compte spécifié. Seul le propriétaire ou un administrateur peut supprimer le compte.",
+     *     summary="Fermer un compte par son id",
+     *     description="Ferme le compte spécifié en le marquant comme archivé. Seul le propriétaire ou un administrateur peut fermer le compte.",
      *     security={{"bearerAuth":{}}},
      *     @OA\Parameter(
      *         name="compteId",
      *         in="path",
      *         required=true,
-     *         description="ID du compte à supprimer",
+     *         description="ID du compte à fermer",
      *         @OA\Schema(type="string")
      *     ),
-     *     @OA\Response(response=200, description="Compte supprimé avec succès"),
+     *     @OA\Response(response=200, description="Compte fermé avec succès"),
      *     @OA\Response(response=403, description="Action non autorisée"),
      *     @OA\Response(response=404, description="Compte non trouvé")
      * )
@@ -533,19 +663,31 @@ class CompteController extends Controller
         $user = Auth::user();
         $compte = \App\Models\Compte::find($compteId);
         if (!$compte) {
-            return response()->json(['success' => false, 'message' => 'Le compte que vous souhaitez supprimer n\'existe pas ou a déjà été supprimé.'], 404);
+            return response()->json(['success' => false, 'message' => 'Le compte que vous souhaitez fermer n\'existe pas ou a déjà été fermé.'], 404);
         }
 
         // Si l'utilisateur n'est pas admin, vérifier qu'il est le propriétaire du compte
         if (method_exists($user, 'isAdmin') && !$user->isAdmin()) {
             $client = Client::where('email', $user->email)->first();
             if (!$client || $compte->client_id !== $client->id) {
-                return response()->json(['success' => false, 'message' => 'Vous n\'avez pas l\'autorisation de supprimer ce compte. Contactez un administrateur si nécessaire.'], 403);
+                return response()->json(['success' => false, 'message' => 'Vous n\'avez pas l\'autorisation de fermer ce compte. Contactez un administrateur si nécessaire.'], 403);
             }
         }
 
-        $compte->delete();
-        return response()->json(['success' => true, 'message' => 'Le compte a été supprimé avec succès de notre système.']);
+        // Archiver le compte au lieu de le supprimer
+        $compte->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
+
+        // Log the action
+        \Illuminate\Support\Facades\Log::info('Compte archived', [
+            'compte_id' => $compte->id,
+            'numero' => $compte->numero,
+            'archived_by' => $user->id,
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Le compte a été fermé avec succès.']);
     }
 
     /**
@@ -637,5 +779,202 @@ class CompteController extends Controller
             'message' => 'Les informations du compte ont été mises à jour avec succès.',
             'data' => $compte,
         ], 201);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/comptes/{compteId}/block",
+     *     tags={"Comptes"},
+     *     summary="Bloquer un compte",
+     *     description="Bloque un compte bancaire pour une période déterminée avec un motif",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="compteId",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte à bloquer",
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             type="object",
+     *             required={"date_debut_blocage", "motif_blocage"},
+     *             @OA\Property(property="date_debut_blocage", type="string", format="date-time", description="Date de début du blocage", example="2025-11-28T12:06:30.188Z"),
+     *             @OA\Property(property="date_fin_blocage", type="string", format="date-time", nullable=true, description="Date de fin du blocage (optionnel)", example="2025-12-28T12:06:30.188Z"),
+     *             @OA\Property(property="motif_blocage", type="string", description="Motif du blocage", example="Suspicion de fraude")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte bloqué avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Le compte a été bloqué avec succès."),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="string", format="uuid"),
+     *                 @OA\Property(property="numeroCompte", type="string"),
+     *                 @OA\Property(property="statut", type="string", example="bloque"),
+     *                 @OA\Property(property="dateDebutBlocage", type="string", format="date-time"),
+     *                 @OA\Property(property="dateFinBlocage", type="string", format="date-time", nullable=true),
+     *                 @OA\Property(property="motifBlocage", type="string")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Compte non trouvé"),
+     *     @OA\Response(response=422, description="Données invalides"),
+     *     @OA\Response(response=403, description="Non autorisé")
+     * )
+     */
+    public function block(BlockCompteRequest $request, string $compteId): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Find the compte
+        $compte = Compte::find($compteId);
+        if (!$compte) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le compte que vous souhaitez bloquer n\'existe pas.',
+            ], 404);
+        }
+
+        // Check permissions (only admins can block comptes)
+        if (!$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'avez pas l\'autorisation de bloquer ce compte.',
+            ], 403);
+        }
+
+        // Check if compte is already blocked
+        if ($compte->isBlocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce compte est déjà bloqué.',
+            ], 422);
+        }
+
+        // Block the compte
+        $compte->update([
+            'date_debut_blocage' => $request->date_debut_blocage,
+            'date_fin_blocage' => $request->date_fin_blocage,
+            'motif_blocage' => $request->motif_blocage,
+        ]);
+
+        // Log the action
+        \Illuminate\Support\Facades\Log::info('Compte blocked', [
+            'compte_id' => $compte->id,
+            'numero' => $compte->numero,
+            'blocked_by' => $user->id,
+            'motif' => $request->motif_blocage,
+            'date_debut' => $request->date_debut_blocage,
+            'date_fin' => $request->date_fin_blocage,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Le compte a été bloqué avec succès.',
+            'data' => [
+                'id' => $compte->id,
+                'numeroCompte' => $compte->numero,
+                'statut' => 'bloque',
+                'dateDebutBlocage' => $compte->date_debut_blocage?->toISOString(),
+                'dateFinBlocage' => $compte->date_fin_blocage?->toISOString(),
+                'motifBlocage' => $compte->motif_blocage,
+            ],
+        ]);
+    }
+
+    /**
+     * @OA\Post(
+     *     path="/api/v1/comptes/{compteId}/unblock",
+     *     tags={"Comptes"},
+     *     summary="Débloquer un compte",
+     *     description="Débloque un compte bancaire précédemment bloqué",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="compteId",
+     *         in="path",
+     *         required=true,
+     *         description="ID du compte à débloquer",
+     *         @OA\Schema(type="string", format="uuid")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Compte débloqué avec succès",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(property="message", type="string", example="Le compte a été débloqué avec succès."),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="object",
+     *                 @OA\Property(property="id", type="string", format="uuid"),
+     *                 @OA\Property(property="numeroCompte", type="string"),
+     *                 @OA\Property(property="statut", type="string", example="actif")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Compte non trouvé"),
+     *     @OA\Response(response=422, description="Le compte n'est pas bloqué"),
+     *     @OA\Response(response=403, description="Non autorisé")
+     * )
+     */
+    public function unblock(Request $request, string $compteId): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Find the compte
+        $compte = Compte::find($compteId);
+        if (!$compte) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Le compte que vous souhaitez débloquer n\'existe pas.',
+            ], 404);
+        }
+
+        // Check permissions (only admins can unblock comptes)
+        if (!$user->isAdmin()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Vous n\'avez pas l\'autorisation de débloquer ce compte.',
+            ], 403);
+        }
+
+        // Check if compte is blocked
+        if (!$compte->isBlocked()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Ce compte n\'est pas bloqué.',
+            ], 422);
+        }
+
+        // Unblock the compte
+        $compte->update([
+            'date_debut_blocage' => null,
+            'date_fin_blocage' => null,
+            'motif_blocage' => null,
+        ]);
+
+        // Log the action
+        \Illuminate\Support\Facades\Log::info('Compte unblocked', [
+            'compte_id' => $compte->id,
+            'numero' => $compte->numero,
+            'unblocked_by' => $user->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Le compte a été débloqué avec succès.',
+            'data' => [
+                'id' => $compte->id,
+                'numeroCompte' => $compte->numero,
+                'statut' => 'actif',
+            ],
+        ]);
     }
 }

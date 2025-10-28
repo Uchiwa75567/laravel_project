@@ -27,7 +27,7 @@ class CompteSeeder extends Seeder
         $techCorp = \App\Models\Client::where('email', 'contact@techcorp.com')->first();
         if ($techCorp) {
             \App\Models\Compte::factory()->forClient($techCorp)->create([
-                'type' => 'courant',
+                'type' => 'cheque',
                 'solde' => 15000.50,
                 'devise' => 'EUR',
                 'is_active' => true,
@@ -48,7 +48,7 @@ class CompteSeeder extends Seeder
         $globalEnt = \App\Models\Client::where('email', 'info@globalent.com')->first();
         if ($globalEnt) {
             \App\Models\Compte::factory()->forClient($globalEnt)->create([
-                'type' => 'entreprise',
+                'type' => 'cheque',
                 'solde' => 50000.00,
                 'devise' => 'USD',
                 'is_active' => true,
@@ -60,7 +60,7 @@ class CompteSeeder extends Seeder
         $inactiveClient = \App\Models\Client::where('email', 'support@inactive.com')->first();
         if ($inactiveClient) {
             \App\Models\Compte::factory()->forClient($inactiveClient)->create([
-                'type' => 'courant',
+                'type' => 'cheque',
                 'solde' => 0.00,
                 'devise' => 'EUR',
                 'is_active' => false,

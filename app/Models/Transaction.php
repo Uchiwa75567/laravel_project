@@ -27,6 +27,8 @@ class Transaction extends Model
         'compte_destination_id',
         'date_transaction',
         'metadata',
+        'is_archived',
+        'archived_at',
     ];
 
     /**
@@ -38,6 +40,8 @@ class Transaction extends Model
         'montant' => 'decimal:2',
         'date_transaction' => 'datetime',
         'metadata' => 'array',
+        'is_archived' => 'boolean',
+        'archived_at' => 'datetime',
     ];
 
     /**

@@ -248,9 +248,8 @@
                         "schema": {
                             "type": "string",
                             "enum": [
-                                "courant",
                                 "epargne",
-                                "entreprise"
+                                "cheque"
                             ]
                         }
                     },
@@ -432,27 +431,87 @@
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "Créer un compte",
-                "description": "Create a new compte. If the client doesn't exist, create the client and a user account.",
+                "summary": "Créer un compte bancaire",
+                "description": "Crée un nouveau compte bancaire pour un client existant ou nouveau. Un email de notification est automatiquement envoyé au client.",
                 "operationId": "aa399240cc7c1f272aa92fe6d6b4e162",
                 "requestBody": {
                     "required": true,
                     "content": {
                         "application/json": {
                             "schema": {
+                                "required": [
+                                    "type",
+                                    "soldeInitial",
+                                    "devise",
+                                    "client"
+                                ],
                                 "properties": {
                                     "type": {
-                                        "type": "string"
+                                        "description": "Type de compte",
+                                        "type": "string",
+                                        "enum": [
+                                            "epargne",
+                                            "cheque"
+                                        ],
+                                        "example": "epargne"
                                     },
-                                    "solde": {
+                                    "soldeInitial": {
+                                        "description": "Solde initial minimum 10 000",
                                         "type": "number",
-                                        "format": "float"
+                                        "format": "float",
+                                        "minimum": 10000,
+                                        "example": 10000
                                     },
                                     "devise": {
-                                        "type": "string"
+                                        "description": "Devise du compte",
+                                        "type": "string",
+                                        "example": "CFA"
+                                    },
+                                    "solde": {
+                                        "description": "Solde initial (alias pour soldeInitial)",
+                                        "type": "number",
+                                        "format": "float",
+                                        "minimum": 10000,
+                                        "example": 10000
                                     },
                                     "client": {
-                                        "type": "object"
+                                        "required": [
+                                            "titulaire",
+                                            "nci",
+                                            "email",
+                                            "telephone",
+                                            "adresse"
+                                        ],
+                                        "properties": {
+                                            "titulaire": {
+                                                "description": "Nom du titulaire",
+                                                "type": "string",
+                                                "example": "bachir ndiaye"
+                                            },
+                                            "nci": {
+                                                "description": "Numéro de carte d'identité",
+                                                "type": "string",
+                                                "example": "1937200100168"
+                                            },
+                                            "email": {
+                                                "description": "Adresse email",
+                                                "type": "string",
+                                                "format": "email",
+                                                "example": "bachir@diame.com"
+                                            },
+                                            "telephone": {
+                                                "description": "Numéro de téléphone (+221...)",
+                                                "type": "string",
+                                                "example": "+221775626363"
+                                            },
+                                            "adresse": {
+                                                "description": "Adresse complète",
+                                                "type": "string",
+                                                "example": "Dakar, Sénégal"
+                                            }
+                                        },
+                                        "type": "object",
+                                        "nullable": true
                                     }
                                 },
                                 "type": "object"
@@ -462,10 +521,65 @@
                 },
                 "responses": {
                     "201": {
-                        "description": "Compte créé"
+                        "description": "Compte créé avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Votre compte bancaire a été créé avec succès. Vous recevrez vos identifiants de connexion par email."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "numeroCompte": {
+                                                    "type": "string"
+                                                },
+                                                "titulaire": {
+                                                    "type": "string"
+                                                },
+                                                "type": {
+                                                    "type": "string"
+                                                },
+                                                "solde": {
+                                                    "type": "number"
+                                                },
+                                                "devise": {
+                                                    "type": "string"
+                                                },
+                                                "dateCreation": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "actif"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
                     },
                     "400": {
-                        "description": "Bad Request"
+                        "description": "Données invalides"
+                    },
+                    "404": {
+                        "description": "Client non trouvé"
+                    },
+                    "422": {
+                        "description": "Erreur de validation"
                     }
                 },
                 "security": [
@@ -611,14 +725,14 @@
                 "tags": [
                     "Comptes"
                 ],
-                "summary": "Supprimer un compte par son id",
-                "description": "Supprime le compte spécifié. Seul le propriétaire ou un administrateur peut supprimer le compte.",
+                "summary": "Fermer un compte par son id",
+                "description": "Ferme le compte spécifié en le marquant comme archivé. Seul le propriétaire ou un administrateur peut fermer le compte.",
                 "operationId": "7bc9431c9cb3f6c5524d461a5b8d2389",
                 "parameters": [
                     {
                         "name": "compteId",
                         "in": "path",
-                        "description": "ID du compte à supprimer",
+                        "description": "ID du compte à fermer",
                         "required": true,
                         "schema": {
                             "type": "string"
@@ -627,7 +741,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Compte supprimé avec succès"
+                        "description": "Compte fermé avec succès"
                     },
                     "403": {
                         "description": "Action non autorisée"
@@ -693,6 +807,200 @@
                 "responses": {
                     "201": {
                         "description": "Compte mis à jour avec succès"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/comptes/{compteId}/block": {
+            "post": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Bloquer un compte",
+                "description": "Bloque un compte bancaire pour une période déterminée avec un motif",
+                "operationId": "bcf36bbea82c467001db5bed302c98fe",
+                "parameters": [
+                    {
+                        "name": "compteId",
+                        "in": "path",
+                        "description": "ID du compte à bloquer",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "required": [
+                                    "date_debut_blocage",
+                                    "motif_blocage"
+                                ],
+                                "properties": {
+                                    "date_debut_blocage": {
+                                        "description": "Date de début du blocage",
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2025-11-28T12:06:30.188Z"
+                                    },
+                                    "date_fin_blocage": {
+                                        "description": "Date de fin du blocage (optionnel)",
+                                        "type": "string",
+                                        "format": "date-time",
+                                        "example": "2025-12-28T12:06:30.188Z",
+                                        "nullable": true
+                                    },
+                                    "motif_blocage": {
+                                        "description": "Motif du blocage",
+                                        "type": "string",
+                                        "example": "Suspicion de fraude"
+                                    }
+                                },
+                                "type": "object"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Compte bloqué avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Le compte a été bloqué avec succès."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "numeroCompte": {
+                                                    "type": "string"
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "bloque"
+                                                },
+                                                "dateDebutBlocage": {
+                                                    "type": "string",
+                                                    "format": "date-time"
+                                                },
+                                                "dateFinBlocage": {
+                                                    "type": "string",
+                                                    "format": "date-time",
+                                                    "nullable": true
+                                                },
+                                                "motifBlocage": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé"
+                    },
+                    "422": {
+                        "description": "Données invalides"
+                    },
+                    "403": {
+                        "description": "Non autorisé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/comptes/{compteId}/unblock": {
+            "post": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Débloquer un compte",
+                "description": "Débloque un compte bancaire précédemment bloqué",
+                "operationId": "b8aef6328a3bce027ebdb4e274d8e6d4",
+                "parameters": [
+                    {
+                        "name": "compteId",
+                        "in": "path",
+                        "description": "ID du compte à débloquer",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Compte débloqué avec succès",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "message": {
+                                            "type": "string",
+                                            "example": "Le compte a été débloqué avec succès."
+                                        },
+                                        "data": {
+                                            "properties": {
+                                                "id": {
+                                                    "type": "string",
+                                                    "format": "uuid"
+                                                },
+                                                "numeroCompte": {
+                                                    "type": "string"
+                                                },
+                                                "statut": {
+                                                    "type": "string",
+                                                    "example": "actif"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte non trouvé"
+                    },
+                    "422": {
+                        "description": "Le compte n'est pas bloqué"
+                    },
+                    "403": {
+                        "description": "Non autorisé"
                     }
                 },
                 "security": [

@@ -24,7 +24,7 @@ class UpdateCompteRequest extends FormRequest
         $compteId = $this->route('compte')?->id ?? $this->route('compte');
 
         return [
-            'type' => 'sometimes|required|string|in:courant,epargne,entreprise',
+            'type' => 'sometimes|required|string|in:epargne,cheque',
             'solde' => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'devise' => 'sometimes|required|string|size:3|in:EUR,USD,GBP,CAD',
             'is_active' => 'sometimes|nullable|boolean',
@@ -49,7 +49,7 @@ class UpdateCompteRequest extends FormRequest
     {
         return [
             'type.required' => 'Le type de compte est obligatoire.',
-            'type.in' => 'Le type de compte doit être : courant, epargne ou entreprise.',
+            'type.in' => 'Le type de compte doit être : epargne ou cheque.',
             'solde.numeric' => 'Le solde doit être un nombre.',
             'solde.min' => 'Le solde ne peut pas être négatif.',
             'solde.max' => 'Le solde ne peut pas dépasser 999 999,99 €.',

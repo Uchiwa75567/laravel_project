@@ -25,6 +25,11 @@ class Compte extends Model
         'client_id',
         'date_ouverture',
         'last_transaction_at',
+        'date_debut_blocage',
+        'date_fin_blocage',
+        'motif_blocage',
+        'is_archived',
+        'archived_at',
     ];
 
     /**
@@ -37,6 +42,10 @@ class Compte extends Model
         'is_active' => 'boolean',
         'date_ouverture' => 'datetime',
         'last_transaction_at' => 'datetime',
+        'date_debut_blocage' => 'datetime',
+        'date_fin_blocage' => 'datetime',
+        'is_archived' => 'boolean',
+        'archived_at' => 'datetime',
     ];
 
     /**
@@ -50,6 +59,11 @@ class Compte extends Model
             if (empty($compte->numero)) {
                 $compte->numero = static::generateNumero();
             }
+        });
+
+        // Archive the compte when it's soft deleted
+        static::deleting(function ($compte) {
+            $compte->archive();
         });
     }
 
@@ -95,6 +109,88 @@ class Compte extends Model
     public function scopeWithBalance($query)
     {
         return $query->where('solde', '>', 0);
+    }
+
+    /**
+     * Scope a query to only include archived comptes.
+     */
+    public function scopeArchived($query)
+    {
+        return $query->where('is_archived', true);
+    }
+
+    /**
+     * Scope a query to only include non-archived comptes.
+     */
+    public function scopeNotArchived($query)
+    {
+        return $query->where('is_archived', false);
+    }
+
+    /**
+     * Scope a query to only include blocked comptes.
+     */
+    public function scopeBlocked($query)
+    {
+        return $query->whereNotNull('date_debut_blocage')
+                    ->where('date_debut_blocage', '<=', now())
+                    ->where(function ($q) {
+                        $q->whereNull('date_fin_blocage')
+                          ->orWhere('date_fin_blocage', '>', now());
+                    });
+    }
+
+    /**
+     * Check if the compte is currently blocked.
+     */
+    public function isBlocked(): bool
+    {
+        $blocked = $this->date_debut_blocage &&
+                   $this->date_debut_blocage->isPast() &&
+                   (!$this->date_fin_blocage || $this->date_fin_blocage->isFuture());
+
+        // If blocked, automatically archive
+        if ($blocked && !$this->is_archived) {
+            $this->archive();
+        }
+
+        return $blocked;
+    }
+
+    /**
+     * Archive the compte and its transactions.
+     */
+    public function archive()
+    {
+        $this->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
+
+        // Archive related transactions
+        $this->transactions()->update(['is_archived' => true, 'archived_at' => now()]);
+    }
+
+    /**
+     * Unarchive the compte and its transactions.
+     */
+    public function unarchive()
+    {
+        $this->update([
+            'is_archived' => false,
+            'archived_at' => null,
+        ]);
+
+        // Unarchive related transactions
+        $this->transactions()->update(['is_archived' => false, 'archived_at' => null]);
+    }
+
+    /**
+     * Get the transactions for the compte.
+     */
+    public function transactions()
+    {
+        return $this->hasMany(Transaction::class);
     }
 
     /**

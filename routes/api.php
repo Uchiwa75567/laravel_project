@@ -53,4 +53,6 @@ Route::middleware('auth:api')->prefix('v1')->group(function () {
     Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
     Route::patch('/comptes/{compteId}', [CompteController::class, 'update']);
     Route::delete('/comptes/{compteId}', [CompteController::class, 'destroy']);
+    Route::post('/comptes/{compteId}/block', [CompteController::class, 'block']);
+    Route::post('/comptes/{compteId}/unblock', [CompteController::class, 'unblock']);
 });
