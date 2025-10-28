@@ -18,10 +18,9 @@ class TransactionSeeder extends Seeder
             $comptes = \App\Models\Compte::factory(10)->create();
         }
 
-        // Create transactions for each compte (5-15 transactions per compte)
+        // Create transactions for each compte (2-3 transactions per compte for production)
         foreach ($comptes as $compte) {
-            $numTransactions = rand(5, 15);
-            // Use correct loop condition to avoid infinite loop / memory exhaustion
+            $numTransactions = rand(2, 3);
             for ($i = 0; $i < $numTransactions; $i++) {
                 \App\Models\Transaction::factory()->forCompte($compte)->create();
             }

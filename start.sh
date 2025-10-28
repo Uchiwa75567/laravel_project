@@ -31,6 +31,24 @@ until php artisan migrate --force; do
 	sleep 5
 done
 
+# Install Passport if not already installed
+echo "Installing Passport..."
+php artisan passport:install --force
+
+# Create Passport password client if it doesn't exist
+echo "Creating Passport password client..."
+if ! php artisan tinker --execute="echo \App\Models\Passport\Client::where('password_client', true)->count();" | grep -q "1"; then
+    php artisan passport:client --password --name="Laravel Password Grant Client" --provider=users
+fi
+
+# Install Faker if not available
+echo "Installing Faker..."
+composer require --dev fakerphp/faker --no-interaction
+
+# Run database seeders
+echo "Running database seeders..."
+php artisan db:seed --force
+
 # Clear and cache config
 echo "Caching configuration..."
 php artisan config:cache
