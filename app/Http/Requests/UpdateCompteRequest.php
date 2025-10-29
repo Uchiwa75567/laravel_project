@@ -25,7 +25,6 @@ class UpdateCompteRequest extends FormRequest
 
         return [
             'type' => 'sometimes|required|string|in:epargne,cheque',
-            'solde' => 'sometimes|nullable|numeric|min:0|max:999999.99',
             'devise' => 'sometimes|required|string|size:3|in:EUR,USD,GBP,CAD',
             'is_active' => 'sometimes|nullable|boolean',
             'client_id' => 'sometimes|required|uuid|exists:clients,id',
@@ -74,7 +73,6 @@ class UpdateCompteRequest extends FormRequest
     {
         return [
             'type' => 'type de compte',
-            'solde' => 'solde',
             'devise' => 'devise',
             'is_active' => 'statut actif',
             'client_id' => 'client',

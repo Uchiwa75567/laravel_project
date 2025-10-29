@@ -32,16 +32,41 @@ class ArchiveExpiredBlockedAccounts implements ShouldQueue
             ->get();
 
         foreach ($expiredBlockedComptes as $compte) {
-            // Archive the compte and its transactions
-            $compte->archive();
+            // Archive the compte to Neon PostgreSQL
+            $this->archiveToNeon($compte);
 
             // Log the archiving action
             \Illuminate\Support\Facades\Log::info('Archived expired blocked compte', [
                 'compte_id' => $compte->id,
                 'numero' => $compte->numero,
                 'date_fin_blocage' => $compte->date_fin_blocage,
-                'archived_at' => $compte->archived_at,
+                'archived_at' => now(),
             ]);
         }
+    }
+
+    /**
+     * Archive le compte vers la base Neon PostgreSQL
+     */
+    private function archiveToNeon(\App\Models\Compte $compte): void
+    {
+        \App\Models\ArchivedAccount::create([
+            'numero' => $compte->numero,
+            'type' => $compte->type,
+            'devise' => $compte->devise,
+            'date_ouverture' => $compte->date_ouverture,
+            'client_id' => $compte->client_id,
+            'is_blocked' => true,
+            'blocked_until' => $compte->date_fin_blocage,
+            'blocked_reason' => $compte->motif_blocage,
+            'archived_at' => now(),
+            'original_id' => $compte->id,
+        ]);
+
+        // Marquer le compte comme archivé dans la base principale
+        $compte->update([
+            'is_archived' => true,
+            'archived_at' => now(),
+        ]);
     }
 }

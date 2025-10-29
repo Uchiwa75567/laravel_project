@@ -50,6 +50,10 @@ return [
             'transport' => 'ses',
         ],
 
+        'ses' => [
+            'transport' => 'ses',
+        ],
+
         'postmark' => [
             'transport' => 'postmark',
             // 'message_stream_id' => null,

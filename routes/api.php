@@ -23,7 +23,6 @@ if (config('app.debug')) {
         ], [
             'numero' => 'C'.strtoupper(\Illuminate\Support\Str::random(8)),
             'type' => 'courant',
-            'solde' => 100000,
             'devise' => 'XOF',
             'is_active' => true,
             'date_ouverture' => now(),
@@ -54,5 +53,4 @@ Route::middleware('auth:api')->prefix('v1')->group(function () {
     Route::patch('/comptes/{compteId}', [CompteController::class, 'update']);
     Route::delete('/comptes/{compteId}', [CompteController::class, 'destroy']);
     Route::post('/comptes/{compteId}/block', [CompteController::class, 'block']);
-    Route::post('/comptes/{compteId}/unblock', [CompteController::class, 'unblock']);
 });

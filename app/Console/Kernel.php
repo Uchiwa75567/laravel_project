@@ -14,6 +14,9 @@ class Kernel extends ConsoleKernel
     {
         // Archive expired blocked comptes daily at 2 AM
         $schedule->command('comptes:archive-expired-blocked')->dailyAt('02:00');
+
+        // Unarchive expired accounts daily at 3 AM
+        $schedule->command('comptes:unarchive-expired')->dailyAt('03:00');
     }
 
     /**

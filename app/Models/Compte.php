@@ -19,7 +19,6 @@ class Compte extends Model
     protected $fillable = [
         'numero',
         'type',
-        'solde',
         'devise',
         'is_active',
         'client_id',
@@ -38,7 +37,6 @@ class Compte extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'solde' => 'decimal:2',
         'is_active' => 'boolean',
         'date_ouverture' => 'datetime',
         'last_transaction_at' => 'datetime',
@@ -106,10 +104,6 @@ class Compte extends Model
     /**
      * Scope a query to only include comptes with positive balance.
      */
-    public function scopeWithBalance($query)
-    {
-        return $query->where('solde', '>', 0);
-    }
 
     /**
      * Scope a query to only include archived comptes.
@@ -196,18 +190,10 @@ class Compte extends Model
     /**
      * Get the formatted balance with currency.
      */
-    public function getFormattedSoldeAttribute()
-    {
-        return number_format($this->solde, 2, ',', ' ') . ' ' . $this->devise;
-    }
 
     /**
      * Check if the account has sufficient balance.
      */
-    public function hasSufficientBalance(float $amount): bool
-    {
-        return $this->solde >= $amount;
-    }
 
     /**
      * Update the last transaction timestamp.

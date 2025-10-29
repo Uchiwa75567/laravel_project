@@ -23,7 +23,6 @@ class StoreCompteRequest extends FormRequest
     {
         return [
             'type' => 'required|string|in:epargne,cheque',
-            'solde' => 'nullable|numeric|min:0|max:999999.99',
             'devise' => 'required|string|size:3|in:EUR,USD,GBP,CAD',
             'is_active' => 'nullable|boolean',
             'client_id' => 'required|uuid|exists:clients,id',
@@ -41,9 +40,6 @@ class StoreCompteRequest extends FormRequest
         return [
             'type.required' => 'Le type de compte est obligatoire.',
             'type.in' => 'Le type de compte doit être : epargne ou cheque.',
-            'solde.numeric' => 'Le solde doit être un nombre.',
-            'solde.min' => 'Le solde ne peut pas être négatif.',
-            'solde.max' => 'Le solde ne peut pas dépasser 999 999,99 €.',
             'devise.required' => 'La devise est obligatoire.',
             'devise.size' => 'La devise doit contenir exactement 3 caractères.',
             'devise.in' => 'La devise doit être : EUR, USD, GBP ou CAD.',
@@ -63,7 +59,6 @@ class StoreCompteRequest extends FormRequest
     {
         return [
             'type' => 'type de compte',
-            'solde' => 'solde',
             'devise' => 'devise',
             'is_active' => 'statut actif',
             'client_id' => 'client',

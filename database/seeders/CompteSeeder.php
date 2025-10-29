@@ -28,7 +28,6 @@ class CompteSeeder extends Seeder
         if ($techCorp) {
             \App\Models\Compte::factory()->forClient($techCorp)->create([
                 'type' => 'cheque',
-                'solde' => 15000.50,
                 'devise' => 'EUR',
                 'is_active' => true,
                 'date_ouverture' => now()->subMonths(6),
@@ -37,7 +36,6 @@ class CompteSeeder extends Seeder
 
             \App\Models\Compte::factory()->forClient($techCorp)->create([
                 'type' => 'epargne',
-                'solde' => 25000.75,
                 'devise' => 'EUR',
                 'is_active' => true,
                 'date_ouverture' => now()->subYear(),
@@ -49,7 +47,6 @@ class CompteSeeder extends Seeder
         if ($globalEnt) {
             \App\Models\Compte::factory()->forClient($globalEnt)->create([
                 'type' => 'cheque',
-                'solde' => 50000.00,
                 'devise' => 'USD',
                 'is_active' => true,
                 'date_ouverture' => now()->subMonths(12),
@@ -61,7 +58,6 @@ class CompteSeeder extends Seeder
         if ($inactiveClient) {
             \App\Models\Compte::factory()->forClient($inactiveClient)->create([
                 'type' => 'cheque',
-                'solde' => 0.00,
                 'devise' => 'EUR',
                 'is_active' => false,
                 'date_ouverture' => now()->subYears(2),

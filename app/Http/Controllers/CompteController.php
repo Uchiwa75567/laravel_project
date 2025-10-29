@@ -239,7 +239,6 @@ class CompteController extends Controller
                 'numeroCompte' => $compte->numero,
                 'titulaire' => $compte->client->name,
                 'type' => $compte->type,
-                'solde' => (float) $compte->solde,
                 'devise' => $compte->devise,
                 'dateCreation' => $compte->date_ouverture->toDateString(),
                 'statut' => $statut,
@@ -394,7 +393,6 @@ class CompteController extends Controller
             'numeroCompte' => $compte->numero,
             'titulaire' => $titulaire,
             'type' => $compte->type,
-            'solde' => (float) $compte->solde,
             'devise' => $compte->devise,
             'dateCreation' => $compte->date_ouverture?->toISOString() ?? ($compte->date_ouverture?->toDateTimeString() ?? null),
             'statut' => $statut,
@@ -422,11 +420,9 @@ class CompteController extends Controller
       *         required=true,
       *         @OA\JsonContent(
       *             type="object",
-      *             required={"type", "soldeInitial", "devise", "client"},
+      *             required={"type", "devise", "client"},
       *             @OA\Property(property="type", type="string", enum={"epargne", "cheque"}, example="epargne", description="Type de compte"),
-      *             @OA\Property(property="soldeInitial", type="number", format="float", minimum=10000, example=10000, description="Solde initial minimum 10 000"),
       *             @OA\Property(property="devise", type="string", example="CFA", description="Devise du compte"),
-      *             @OA\Property(property="solde", type="number", format="float", minimum=10000, example=10000, description="Solde initial (alias pour soldeInitial)"),
       *             @OA\Property(
       *                 property="client",
       *                 type="object",
@@ -470,8 +466,6 @@ class CompteController extends Controller
     {
         $payload = $request->validate([
             'type' => 'required|string|in:epargne,cheque',
-            'solde' => 'nullable|numeric|min:10000',
-            'soldeInitial' => 'required_without:solde|numeric|min:10000',
             'devise' => 'required|string|size:3',
             'client_id' => 'nullable|uuid|exists:clients,id',
             'client.id' => 'nullable|string',
@@ -486,8 +480,6 @@ class CompteController extends Controller
             'client.email.unique' => 'Cette adresse email est déjà utilisée par un autre client.',
             'client.telephone.unique' => 'Ce numéro de téléphone est déjà enregistré.',
             'client.telephone.regex' => 'Le numéro de téléphone doit être au format international sénégalais, par exemple : +221771234567',
-            'solde.min' => 'Le solde initial doit être d\'au moins 10 000 FCFA pour ouvrir un compte.',
-            'soldeInitial.min' => 'Le solde initial doit être d\'au moins 10 000 FCFA pour ouvrir un compte.',
         ]);
 
         $user = Auth::user();
@@ -551,8 +543,11 @@ class CompteController extends Controller
                 // Send authentication email with password (simple Mailable)
                 try {
                     \Illuminate\Support\Facades\Mail::to($client->email)->send(new \App\Mail\ClientCredentialsMail($generatedPassword));
+                    \Illuminate\Support\Facades\Log::info('Client credentials email sent successfully to: ' . $client->email);
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Unable to send client credentials email: ' . $e->getMessage());
+                    // Log the password for debugging purposes
+                    \Illuminate\Support\Facades\Log::info('Generated password for ' . $client->email . ': ' . $generatedPassword);
                 }
 
                 // Send SMS with code via Twilio if configured, otherwise log it
@@ -579,7 +574,7 @@ class CompteController extends Controller
         // Create compte
         $numero = method_exists(\App\Models\Compte::class, 'generateNumero') ? \App\Models\Compte::generateNumero() : \Illuminate\Support\Str::upper('C' . \Illuminate\Support\Str::random(8));
 
-        $solde = $payload['soldeInitial'] ?? $payload['solde'] ?? 0;
+        $solde = 0;
 
         $compte = \App\Models\Compte::create([
             'numero' => $numero,
@@ -595,8 +590,13 @@ class CompteController extends Controller
         // Send email notification to client about account creation
         try {
             \Illuminate\Support\Facades\Mail::to($client->email)->send(new \App\Mail\AccountCreatedMail($compte, $generatedPassword ?? null));
+            \Illuminate\Support\Facades\Log::info('Account creation email sent successfully to: ' . $client->email);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Unable to send account creation email: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Unable to send account creation email to ' . $client->email . ': ' . $e->getMessage());
+            // Log the password for debugging purposes
+            if ($generatedPassword) {
+                \Illuminate\Support\Facades\Log::info('Generated password for account creation ' . $client->email . ': ' . $generatedPassword);
+            }
         }
 
         $responseData = [
@@ -607,7 +607,6 @@ class CompteController extends Controller
                 'numeroCompte' => $compte->numero,
                 'titulaire' => $client->name,
                 'type' => $compte->type,
-                'solde' => (float) $compte->solde,
                 'devise' => $compte->devise,
                 'dateCreation' => $compte->date_ouverture->toISOString(),
                 'statut' => $compte->is_active ? 'actif' : 'bloque',
@@ -624,7 +623,6 @@ class CompteController extends Controller
             'numero' => $compte->numero,
             'type' => $compte->type,
             'client_id' => $client->id,
-            'solde' => $compte->solde,
             'created_by' => $user->id,
         ]);
 
@@ -889,92 +887,4 @@ class CompteController extends Controller
         ]);
     }
 
-    /**
-     * @OA\Post(
-     *     path="/api/v1/comptes/{compteId}/unblock",
-     *     tags={"Comptes"},
-     *     summary="Débloquer un compte",
-     *     description="Débloque un compte bancaire précédemment bloqué",
-     *     security={{"bearerAuth":{}}},
-     *     @OA\Parameter(
-     *         name="compteId",
-     *         in="path",
-     *         required=true,
-     *         description="ID du compte à débloquer",
-     *         @OA\Schema(type="string", format="uuid")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Compte débloqué avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="success", type="boolean", example=true),
-     *             @OA\Property(property="message", type="string", example="Le compte a été débloqué avec succès."),
-     *             @OA\Property(
-     *                 property="data",
-     *                 type="object",
-     *                 @OA\Property(property="id", type="string", format="uuid"),
-     *                 @OA\Property(property="numeroCompte", type="string"),
-     *                 @OA\Property(property="statut", type="string", example="actif")
-     *             )
-     *         )
-     *     ),
-     *     @OA\Response(response=404, description="Compte non trouvé"),
-     *     @OA\Response(response=422, description="Le compte n'est pas bloqué"),
-     *     @OA\Response(response=403, description="Non autorisé")
-     * )
-     */
-    public function unblock(Request $request, string $compteId): JsonResponse
-    {
-        $user = Auth::user();
-
-        // Find the compte
-        $compte = Compte::find($compteId);
-        if (!$compte) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Le compte que vous souhaitez débloquer n\'existe pas.',
-            ], 404);
-        }
-
-        // Check permissions (only admins can unblock comptes)
-        if (!$user->isAdmin()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vous n\'avez pas l\'autorisation de débloquer ce compte.',
-            ], 403);
-        }
-
-        // Check if compte is blocked
-        if (!$compte->isBlocked()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Ce compte n\'est pas bloqué.',
-            ], 422);
-        }
-
-        // Unblock the compte
-        $compte->update([
-            'date_debut_blocage' => null,
-            'date_fin_blocage' => null,
-            'motif_blocage' => null,
-        ]);
-
-        // Log the action
-        \Illuminate\Support\Facades\Log::info('Compte unblocked', [
-            'compte_id' => $compte->id,
-            'numero' => $compte->numero,
-            'unblocked_by' => $user->id,
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Le compte a été débloqué avec succès.',
-            'data' => [
-                'id' => $compte->id,
-                'numeroCompte' => $compte->numero,
-                'statut' => 'actif',
-            ],
-        ]);
-    }
 }
