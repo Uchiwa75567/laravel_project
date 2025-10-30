@@ -48,6 +48,7 @@ Route::middleware('auth:api')->prefix('v1')->group(function () {
 
     // Comptes
     Route::get('/comptes', [CompteController::class, 'index']);
+    Route::get('/comptes/search', [CompteController::class, 'search']);
     Route::post('/comptes', [CompteController::class, 'store']);
     Route::get('/comptes/{compteId}', [CompteController::class, 'show']);
     Route::patch('/comptes/{compteId}', [CompteController::class, 'update']);

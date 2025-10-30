@@ -4,7 +4,7 @@ require_once __DIR__ . '/../vendor/autoload.php';
 
 class SwaggerEndpointTester
 {
-    private $baseUrl = 'http://localhost:8000';
+    private $baseUrl = 'http://localhost:8081';
     private $swaggerPath = __DIR__ . '/../storage/api-docs/api-docs.json';
     private $outputPath;
     private $client;

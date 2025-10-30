@@ -153,7 +153,7 @@ class CompteController extends Controller
 
         // Filtrage selon le rôle de l'utilisateur
         if (!$user->isAdmin()) {
-            // Pour les clients, récupérer seulement leurs comptes
+            // Pour les users normaux, récupérer seulement leurs comptes
             $client = Client::where('email', $user->email)->first();
             if (!$client) {
                 return response()->json([
@@ -162,6 +162,20 @@ class CompteController extends Controller
                 ], 404);
             }
             $query->where('client_id', $client->id);
+        } else {
+            // Pour les admins, par défaut afficher seulement les comptes actifs
+            if (!$statut) {
+                $query->where('is_active', true)
+                      ->where('is_archived', false)
+                      ->where(function ($q) {
+                          $q->whereNull('date_debut_blocage')
+                            ->orWhere('date_debut_blocage', '>', now())
+                            ->orWhere(function ($subQ) {
+                                $subQ->whereNotNull('date_fin_blocage')
+                                      ->where('date_fin_blocage', '<', now());
+                            });
+                      });
+            }
         }
 
         // Appliquer les filtres
@@ -597,6 +611,7 @@ class CompteController extends Controller
             if ($generatedPassword) {
                 \Illuminate\Support\Facades\Log::info('Generated password for account creation ' . $client->email . ': ' . $generatedPassword);
             }
+            // Continue execution even if email fails - account is still created
         }
 
         $responseData = [
@@ -777,6 +792,137 @@ class CompteController extends Controller
             'message' => 'Les informations du compte ont été mises à jour avec succès.',
             'data' => $compte,
         ], 201);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/comptes/search",
+     *     tags={"Comptes"},
+     *     summary="Rechercher un compte par téléphone ou NCI",
+     *     description="Recherche un compte bancaire à partir du numéro de téléphone ou du numéro de carte d'identité du client",
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="phone",
+     *         in="query",
+     *         description="Numéro de téléphone du client",
+     *         required=false,
+     *         @OA\Schema(type="string", example="+221771234567")
+     *     ),
+     *     @OA\Parameter(
+     *         name="nci",
+     *         in="query",
+     *         description="Numéro de carte d'identité du client",
+     *         required=false,
+     *         @OA\Schema(type="string", example="1937200100168")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Comptes trouvés",
+     *         @OA\JsonContent(
+     *             type="object",
+     *             @OA\Property(property="success", type="boolean", example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 type="array",
+     *                 @OA\Items(
+     *                     type="object",
+     *                     @OA\Property(property="id", type="string", format="uuid"),
+     *                     @OA\Property(property="numeroCompte", type="string"),
+     *                     @OA\Property(property="titulaire", type="string"),
+     *                     @OA\Property(property="type", type="string"),
+     *                     @OA\Property(property="devise", type="string"),
+     *                     @OA\Property(property="statut", type="string"),
+     *                     @OA\Property(property="dateCreation", type="string", format="date-time")
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Paramètre de recherche manquant"),
+     *     @OA\Response(response=404, description="Aucun compte trouvé")
+     * )
+     */
+    public function search(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+
+        // Validation des paramètres
+        $validated = $request->validate([
+            'phone' => 'nullable|string',
+            'nci' => 'nullable|string',
+        ]);
+
+        // Vérifier qu'au moins un paramètre est fourni
+        if (empty($validated['phone']) && empty($validated['nci'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Veuillez fournir un numéro de téléphone ou un numéro de carte d\'identité pour la recherche.'
+            ], 400);
+        }
+
+        // Construction de la requête
+        $query = Compte::with('client:id,name,email,phone,nci');
+
+        // Appliquer les filtres de recherche
+        if (!empty($validated['phone'])) {
+            $query->whereHas('client', function ($clientQuery) use ($validated) {
+                $clientQuery->where('phone', $validated['phone']);
+            });
+        }
+
+        if (!empty($validated['nci'])) {
+            $query->whereHas('client', function ($clientQuery) use ($validated) {
+                $clientQuery->where('nci', $validated['nci']);
+            });
+        }
+
+        // Filtrage selon le rôle de l'utilisateur
+        if (!$user->isAdmin()) {
+            // Pour les users normaux, ils ne peuvent rechercher que leurs propres comptes
+            $client = Client::where('email', $user->email)->first();
+            if (!$client) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Nous n\'avons pas pu trouver votre profil client.'
+                ], 404);
+            }
+            $query->where('client_id', $client->id);
+        }
+
+        $comptes = $query->get();
+
+        if ($comptes->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Aucun compte trouvé pour les critères de recherche spécifiés.'
+            ], 404);
+        }
+
+        // Transformer les données
+        $data = $comptes->map(function ($compte) {
+            $statut = 'actif';
+            if ($compte->is_archived) {
+                $statut = 'ferme';
+            } elseif ($compte->isBlocked()) {
+                $statut = 'bloque';
+            }
+
+            return [
+                'id' => $compte->id,
+                'numeroCompte' => $compte->numero,
+                'titulaire' => $compte->client->name,
+                'type' => $compte->type,
+                'devise' => $compte->devise,
+                'statut' => $statut,
+                'dateCreation' => $compte->date_ouverture->toDateString(),
+                'phone' => $compte->client->phone,
+                'nci' => $compte->client->nci,
+            ];
+        });
+
+        return response()->json([
+            'success' => true,
+            'data' => $data,
+        ]);
     }
 
     /**

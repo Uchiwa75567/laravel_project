@@ -801,6 +801,98 @@
                 ]
             }
         },
+        "/api/v1/comptes/search": {
+            "get": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Rechercher un compte par téléphone ou NCI",
+                "description": "Recherche un compte bancaire à partir du numéro de téléphone ou du numéro de carte d'identité du client",
+                "operationId": "9544bd3014a34dc71bd45b824333312a",
+                "parameters": [
+                    {
+                        "name": "phone",
+                        "in": "query",
+                        "description": "Numéro de téléphone du client",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "+221771234567"
+                        }
+                    },
+                    {
+                        "name": "nci",
+                        "in": "query",
+                        "description": "Numéro de carte d'identité du client",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "example": "1937200100168"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Comptes trouvés",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "success": {
+                                            "type": "boolean",
+                                            "example": true
+                                        },
+                                        "data": {
+                                            "type": "array",
+                                            "items": {
+                                                "properties": {
+                                                    "id": {
+                                                        "type": "string",
+                                                        "format": "uuid"
+                                                    },
+                                                    "numeroCompte": {
+                                                        "type": "string"
+                                                    },
+                                                    "titulaire": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": {
+                                                        "type": "string"
+                                                    },
+                                                    "devise": {
+                                                        "type": "string"
+                                                    },
+                                                    "statut": {
+                                                        "type": "string"
+                                                    },
+                                                    "dateCreation": {
+                                                        "type": "string",
+                                                        "format": "date-time"
+                                                    }
+                                                },
+                                                "type": "object"
+                                            }
+                                        }
+                                    },
+                                    "type": "object"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Paramètre de recherche manquant"
+                    },
+                    "404": {
+                        "description": "Aucun compte trouvé"
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/comptes/{compteId}/block": {
             "post": {
                 "tags": [
