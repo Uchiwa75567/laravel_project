@@ -29,7 +29,7 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="id", type="string", format="uuid"),
  *     @OA\Property(property="numeroCompte", type="string"),
  *     @OA\Property(property="titulaire", type="string"),
- *     @OA\Property(property="type", type="string", enum={"courant", "epargne", "entreprise"}),
+ *     @OA\Property(property="type", type="string", enum={"epargne", "cheque"}),
  *     @OA\Property(property="solde", type="number", format="float"),
  *     @OA\Property(property="devise", type="string"),
  *     @OA\Property(property="dateCreation", type="string", format="date-time"),
@@ -123,7 +123,7 @@ use Illuminate\Http\Request;
  *             in="query",
  *             description="Filtrer par type",
  *             required=false,
- *             @OA\Schema(type="string", enum={"courant", "epargne", "entreprise"})
+ *             @OA\Schema(type="string", enum={"epargne", "cheque"})
  *         ),
  *         @OA\Parameter(
  *             name="statut",
@@ -282,7 +282,7 @@ use Illuminate\Http\Request;
  *     @OA\Property(property="id", type="string", format="uuid"),
  *     @OA\Property(property="numeroCompte", type="string"),
  *     @OA\Property(property="titulaire", type="string"),
- *     @OA\Property(property="type", type="string", enum={"courant", "epargne", "entreprise"}),
+ *     @OA\Property(property="type", type="string", enum={"epargne", "cheque"}),
  *     @OA\Property(property="solde", type="number", format="float"),
  *     @OA\Property(property="devise", type="string"),
  *     @OA\Property(property="dateCreation", type="string", format="date"),

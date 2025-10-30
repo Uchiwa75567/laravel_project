@@ -58,8 +58,8 @@ class SwaggerEndpointTester
             $response = $this->client->post('/oauth/token', [
                 'form_params' => [
                     'grant_type' => 'password',
-                    'client_id' => '4',
-                    'client_secret' => 'CoB1cFspfzXv09srdUFolBLmNIqTf32nJX87SjdT',
+                    'client_id' => '2',
+                    'client_secret' => 'Sq0JkVjE9XtIaNoc9mNMP968lRbnIHrbBsfCpUnQ',
                     'username' => 'test+bot@bankapi.com',
                     'password' => 'Password123',
                     'scope' => '',
@@ -92,7 +92,7 @@ class SwaggerEndpointTester
 
     private function testEndpoint($path, $method, $details)
     {
-        $fullPath = str_replace(['{', '}'], ['1', ''], $path); // Replace path params with dummy values
+        $fullPath = str_replace(['{', '}'], ['a03944ec-9074-41cb-9b9a-754b26e6502d', ''], $path); // Replace path params with dummy values
         echo "\nTesting $method $fullPath\n";
 
         try {

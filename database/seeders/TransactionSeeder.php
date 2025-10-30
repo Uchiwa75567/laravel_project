@@ -32,12 +32,12 @@ class TransactionSeeder extends Seeder
         })->get();
 
         if ($techCorpComptes->isNotEmpty()) {
-            $courantCompte = $techCorpComptes->where('type', 'courant')->first();
+            $chequeCompte = $techCorpComptes->where('type', 'cheque')->first();
             $epargneCompte = $techCorpComptes->where('type', 'epargne')->first();
 
-            if ($courantCompte) {
+            if ($chequeCompte) {
                 // Dépôt initial
-                \App\Models\Transaction::factory()->forCompte($courantCompte)->create([
+                \App\Models\Transaction::factory()->forCompte($chequeCompte)->create([
                     'type' => 'depot',
                     'montant' => 10000.00,
                     'description' => 'Dépôt initial société',
@@ -46,7 +46,7 @@ class TransactionSeeder extends Seeder
                 ]);
 
                 // Quelques retraits et paiements
-                \App\Models\Transaction::factory()->forCompte($courantCompte)->create([
+                \App\Models\Transaction::factory()->forCompte($chequeCompte)->create([
                     'type' => 'paiement',
                     'montant' => 2500.00,
                     'description' => 'Paiement fournisseur informatique',
@@ -54,7 +54,7 @@ class TransactionSeeder extends Seeder
                     'date_transaction' => now()->subMonths(5),
                 ]);
 
-                \App\Models\Transaction::factory()->forCompte($courantCompte)->create([
+                \App\Models\Transaction::factory()->forCompte($chequeCompte)->create([
                     'type' => 'retrait',
                     'montant' => 1000.00,
                     'description' => 'Retrait espèces',
@@ -63,9 +63,9 @@ class TransactionSeeder extends Seeder
                 ]);
             }
 
-            if ($epargneCompte && $courantCompte) {
-                // Virement du compte courant vers épargne
-                \App\Models\Transaction::factory()->betweenComptes($courantCompte, $epargneCompte)->create([
+            if ($epargneCompte && $chequeCompte) {
+                // Virement du compte cheque vers épargne
+                \App\Models\Transaction::factory()->betweenComptes($chequeCompte, $epargneCompte)->create([
                     'montant' => 5000.00,
                     'description' => 'Virement vers compte épargne',
                     'statut' => 'effectuee',
@@ -76,7 +76,7 @@ class TransactionSeeder extends Seeder
                 \App\Models\Transaction::factory()->forCompte($epargneCompte)->create([
                     'type' => 'virement_recue',
                     'montant' => 5000.00,
-                    'description' => 'Virement depuis compte courant',
+                    'description' => 'Virement depuis compte cheque',
                     'statut' => 'effectuee',
                     'date_transaction' => now()->subMonths(4),
                 ]);
@@ -88,11 +88,11 @@ class TransactionSeeder extends Seeder
         })->get();
 
         if ($globalEntComptes->isNotEmpty()) {
-            $entrepriseCompte = $globalEntComptes->where('type', 'entreprise')->first();
+            $chequeCompte = $globalEntComptes->where('type', 'cheque')->first();
 
-            if ($entrepriseCompte) {
+            if ($chequeCompte) {
                 // Grande transaction en USD
-                \App\Models\Transaction::factory()->forCompte($entrepriseCompte)->create([
+                \App\Models\Transaction::factory()->forCompte($chequeCompte)->create([
                     'type' => 'depot',
                     'montant' => 25000.00,
                     'devise' => 'USD',
@@ -102,7 +102,7 @@ class TransactionSeeder extends Seeder
                 ]);
 
                 // Transaction récente
-                \App\Models\Transaction::factory()->forCompte($entrepriseCompte)->create([
+                \App\Models\Transaction::factory()->forCompte($chequeCompte)->create([
                     'type' => 'paiement',
                     'montant' => 5000.00,
                     'devise' => 'USD',

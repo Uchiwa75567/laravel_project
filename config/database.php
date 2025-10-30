@@ -78,6 +78,20 @@ return [
             'sslmode' => 'prefer',
         ],
 
+        'pgsql_neon' => [
+            'driver' => 'pgsql',
+            'host' => env('DB_CONNECTION_NEON_HOST'),
+            'port' => env('DB_CONNECTION_NEON_PORT', '5432'),
+            'database' => env('DB_CONNECTION_NEON_DATABASE'),
+            'username' => env('DB_CONNECTION_NEON_USERNAME'),
+            'password' => env('DB_CONNECTION_NEON_PASSWORD'),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => env('DB_CONNECTION_NEON_SSLMODE', 'require'),
+        ],
+
         'sqlsrv' => [
             'driver' => 'sqlsrv',
             'url' => env('DATABASE_URL'),

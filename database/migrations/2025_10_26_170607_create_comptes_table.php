@@ -15,7 +15,6 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->string('numero')->unique();
             $table->string('type'); // courant, epargne, etc.
-            $table->decimal('solde', 15, 2)->default(0);
             $table->string('devise', 3)->default('EUR');
             $table->boolean('is_active')->default(true);
             $table->foreignUuid('client_id')->constrained('clients')->onDelete('cascade');

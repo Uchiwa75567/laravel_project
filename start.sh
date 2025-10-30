@@ -45,9 +45,13 @@ fi
 echo "Installing Faker..."
 composer require --dev fakerphp/faker --no-interaction
 
-# Run database seeders
-echo "Running database seeders..."
-php artisan db:seed --force
+# Run database seeders only in local/development environment
+if [ "$APP_ENV" = "local" ] || [ "$APP_ENV" = "development" ]; then
+    echo "Running database seeders..."
+    php artisan db:seed --force
+else
+    echo "Skipping database seeders in production environment"
+fi
 
 # Clear and cache config
 echo "Caching configuration..."

@@ -29,6 +29,7 @@ class User extends Authenticatable
         'is_active',
         'last_login_at',
         'preferences',
+        'client_id',
     ];
 
     /**
@@ -113,11 +114,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if the user is a manager.
+     * Check if the user is a regular user (not admin).
      */
-    public function isManager(): bool
+    public function isUser(): bool
     {
-        return $this->role === 'manager';
+        return $this->role === 'user';
     }
 
     /**
